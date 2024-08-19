@@ -18,9 +18,10 @@ ssh-add ~/.ssh/id_rsa
 ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
 # Clone the repository
-git clone git@github.com:DanielGardin/auto-bidding.git /work/auto-bidding
-
-pip install -r /work/auto-bidding/requirements.txt
+mkdir -p /work/temp
+git clone git@github.com:DanielGardin/auto-bidding.git /work/temp
+rsync -a /work/temp/* /work/auto-bidding
+rm -rf /work/temp
 
 export PYTHONPATH="/root/biddingTrainEnv:${PYTHONPATH}"
 

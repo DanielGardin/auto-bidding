@@ -11,8 +11,10 @@ RUN apt-get install -y \
     curl \
     wget \
     git \
-    openssh-client
+    openssh-client \
+    rsync
 
+RUN git config --global --add safe.directory /work/
 RUN mkdir -p ~/.ssh
 
 ENV TZ=America/Sao_Paulo
@@ -25,16 +27,20 @@ RUN apt-get install -y \
     python3.11 \
     python3.11-dev \
     libmpc-dev
-
+    
 RUN ln -s /usr/bin/python3.11 /usr/bin/python
 RUN wget -qO- https://bootstrap.pypa.io/get-pip.py | python
 
+
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+RUN rm requirements.txt
+
+RUN pip install notebook
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-
-RUN git config --global --add safe.directory /work/
 
 EXPOSE 8000
