@@ -1,15 +1,40 @@
-FROM competition-hub-registry.cn-beijing.cr.aliyuncs.com/alimama-competition/bidding-results:base
+ARG CUDA_VERSION=12.2.0
 
-# 设置工作目录为/root/biddingTrainEnv
-WORKDIR /root/biddingTrainEnv
+FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu22.04
 
-# 将当前目录内容复制到位于/root/biddingTrainEnv的容器中
-COPY . .
+ENV SHELL=/bin/bash
 
-# 安装requirements.txt中指定的所有依赖
-RUN pip3 install --no-cache-dir -r requirements.txt
+WORKDIR /work/
 
-# 当容器启动时运行run_evaluate.py脚本
-CMD ["python3", "./run/run_evaluate.py"]
+RUN apt-get update
+RUN apt-get install -y \
+    curl \
+    wget \
+    git \
+    openssh-client
 
-ENV PYTHONPATH="/root/biddingTrainEnv:${PYTHONPATH}"
+RUN mkdir -p ~/.ssh
+
+ENV TZ=America/Sao_Paulo
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN apt-get install -y software-properties-common
+RUN add-apt-repository -y ppa:deadsnakes/ppa
+RUN apt-get install -y \
+    build-essential \ 
+    python3.11 \
+    python3.11-dev \
+    libmpc-dev
+
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
+RUN wget -qO- https://bootstrap.pypa.io/get-pip.py | python
+
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+RUN git config --global --add safe.directory /work/
+
+EXPOSE 8000

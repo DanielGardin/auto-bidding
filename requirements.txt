@@ -1,9 +1,13 @@
 numpy==1.24.2
 pandas==2.0.3
-torch==1.12.0
+torch==2.3.1       # Updated torch, need to be tested
 gin==0.1.006
 gin_config==0.5.0
-matplotlib==3.3.4
+matplotlib==3.8.4  # Updated
 scipy==1.11.1
 psutil
 func_timeout
+
+# Added packages
+seaborn==0.13.2
+tqdm==4.66.5
