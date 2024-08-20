@@ -37,7 +37,7 @@ if [ ! -d "/work/auto-bidding/.git" ]; then
 fi
 
 if [[ -v GID && -v GROUP && -v USER && -v UID ]]; then
-  chown -R $USER:$GROUP /work/auto-bidding/.git/
+  chmod -R 777 $USER:$GROUP /work
   cp -r ~/.ssh /home/$USER
   chown -R $USER:$GROUP ~/.ssh /home/$USER
 fi
