@@ -6,6 +6,11 @@ if [ -z "$SSH_KEY" ]; then
   exit 1
 fi
 
+# Por fins de alguém curioso de como isso funciona, estou emulando o
+# que alguém faria dentro do container para realizar o setup inicial.
+# Para agilizar, estou evitando
+
+
 if [[ -v GID && -v GROUP && -v USER && -v UID ]]; then
   groupadd --gid $GID $GROUP
   useradd  --create-home --uid $UID --gid $GID $USER
