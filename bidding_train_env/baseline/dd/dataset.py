@@ -10,7 +10,7 @@ class aigb_dataset(Dataset):
     def __init__(self, step_len, **kwargs) -> None:
         super().__init__()
         states, actions, rewards, terminals = load_local_data_nips(
-            train_data_path="data/trajectory/trajectory_data.csv")
+            train_data_path="data/traffic/trajectory/trajectory_data.csv")
         self.states = states
         self.actions = actions
         self.rewards = rewards
