@@ -1,29 +1,32 @@
 import numpy as np
 import torch
-import pickle
 from bidding_train_env.strategy.base_bidding_strategy import BaseBiddingStrategy
+import numpy as np
+from bidding_train_env.baseline.dd.DFUSER import DFUSER
 import os
 
 
-class IqlBiddingStrategy(BaseBiddingStrategy):
+class DdBiddingStrategy(BaseBiddingStrategy):
     """
-    IQL Strategy
+    Decision-Diffuser-PlayerStrategy
     """
 
-    def __init__(self, budget=100, name="Iql-PlayerStrategy", cpa=2, category=1):
+    def __init__(self, budget=100, name="Decision-Diffuser-PlayerStrategy", cpa=2, category=1):
         super().__init__(budget, name, cpa, category)
-
         file_name = os.path.dirname(os.path.realpath(__file__))
         dir_name = os.path.dirname(file_name)
         dir_name = os.path.dirname(dir_name)
-        model_path = os.path.join(dir_name,"saved_model","IQLtest","iql_model.pth")
-        dict_path = os.path.join(dir_name,"saved_model","IQLtest","normalize_dict.pkl")
-        self.model = torch.jit.load(model_path)
-        with open(dict_path, 'rb') as file:
-            self.normalize_dict = pickle.load(file)
+        model_path = os.path.join(dir_name, "saved_model", "DDtest", "diffuser.pt")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.model = DFUSER()
+        self.model.load_net(model_path,device =self.device)
+        self.state_dim = 16
+        self.input = np.zeros((48,self.state_dim+1))
+
 
     def reset(self):
         self.remaining_budget = self.budget
+        self.input = np.zeros((48, self.state_dim+1))
 
     def bidding(self, timeStepIndex, pValues, pValueSigmas, historyPValueInfo, historyBid,
                 historyAuctionResult, historyImpressionResult, historyLeastWinningCost):
@@ -91,15 +94,13 @@ class IqlBiddingStrategy(BaseBiddingStrategy):
             historical_pv_num_total
         ])
 
-        def normalize(value, min_value, max_value):
-            return (value - min_value) / (max_value - min_value) if max_value > min_value else 0
 
-        for key, value in self.normalize_dict.items():
-            test_state[key] = normalize(test_state[key], value["min"], value["max"])
-
-        test_state = torch.tensor(test_state, dtype=torch.float)
-        alpha = self.model(test_state)
-        alpha = alpha.cpu().numpy()
+        for i in range(self.state_dim):
+            self.input[timeStepIndex,i] = test_state[i]
+        self.input[:,-1] = timeStepIndex
+        x = torch.tensor(self.input.reshape(-1), device=self.device)
+        alpha  = self.model(x)
+        alpha = alpha.item()
+        alpha = max(0,alpha)
         bids = alpha * pValues
-
         return bids

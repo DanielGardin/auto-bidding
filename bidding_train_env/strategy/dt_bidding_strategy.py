@@ -1,29 +1,34 @@
+import time
+import gin
 import numpy as np
+import os
+import psutil
+# from saved_model.DTtest.dt import DecisionTransformer
+from bidding_train_env.baseline.dt.dt import DecisionTransformer
+from bidding_train_env.strategy.base_bidding_strategy import BaseBiddingStrategy
 import torch
 import pickle
-import os
-
-from bidding_train_env.strategy.base_bidding_strategy import BaseBiddingStrategy
 
 
-class BcBiddingStrategy(BaseBiddingStrategy):
+class DtBiddingStrategy(BaseBiddingStrategy):
     """
-    Behavioral Cloning (bc) Strategy
+    Decision-Transformer-PlayerStrategy
     """
 
-    def __init__(self, budget=100, name="Bc-PlayerStrategy", cpa=2, category=1):
+    def __init__(self, budget=100, name="Decision-Transformer-PlayerStrategy", cpa=2, category=1):
         super().__init__(budget, name, cpa, category)
 
         file_name = os.path.dirname(os.path.realpath(__file__))
         dir_name = os.path.dirname(file_name)
         dir_name = os.path.dirname(dir_name)
-        model_path = os.path.join(dir_name, "saved_model", "BCtest", "bc_model.pth")
-        dict_path = os.path.join(dir_name, "saved_model", "BCtest", "normalize_dict.pkl")
+        model_path = os.path.join(dir_name, "saved_model", "DTtest", "dt.pt")
+        picklePath = os.path.join(dir_name, "saved_model", "DTtest", "normalize_dict.pkl")
 
-        self.model = torch.jit.load(model_path)
-
-        with open(dict_path, 'rb') as f:
-            self.normalize_dict = pickle.load(f)
+        with open(picklePath, 'rb') as f:
+            normalize_dict = pickle.load(f)
+        self.model = DecisionTransformer(state_dim=16, act_dim=1, state_mean=normalize_dict["state_mean"],
+                                         state_std=normalize_dict["state_std"])
+        self.model.load_net(model_path)
 
     def reset(self):
         self.remaining_budget = self.budget
@@ -94,15 +99,12 @@ class BcBiddingStrategy(BaseBiddingStrategy):
             historical_pv_num_total
         ])
 
-        def normalize(value, min_value, max_value):
-            return (value - min_value) / (max_value - min_value) if max_value > min_value else 0
+        if timeStepIndex == 0:
+            self.model.init_eval()
 
-        for key, value in self.normalize_dict.items():
-            test_state[key] = normalize(test_state[key], value["min"], value["max"])
-
-        test_state = torch.tensor(test_state, dtype=torch.float)
-        alpha = self.model(test_state)
-        alpha = alpha.cpu().numpy()
+        alpha = self.model.take_actions(test_state,
+                                        pre_reward=sum(history_conversion[-1]) if len(history_conversion) != 0 else None)
         bids = alpha * pValues
-
         return bids
+
+

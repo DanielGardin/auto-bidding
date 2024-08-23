@@ -3,12 +3,13 @@ import torch
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from run.run_decision_transformer import run_dt
 
-
-from run.run_bc import run_bc
 
 torch.manual_seed(1)
 np.random.seed(1)
 
+
 if __name__ == "__main__":
-    run_bc()
+    """程序主入口，运行BC算法"""
+    run_dt()
