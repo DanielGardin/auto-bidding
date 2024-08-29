@@ -1,21 +1,30 @@
-from io import BytesIO
-from zipfile import ZipFile
-from urllib.request import urlopen
-from tqdm import tqdm
+"""
+    Download the challange data from the competition.
+"""
+from typing import Optional
+
 from pathlib import Path
 import logging
 import os
 
+from io import BytesIO
+from zipfile import ZipFile
+from urllib.request import urlopen
+from tqdm import tqdm
+
 logging.getLogger(__file__)
 
-def download_data(period_name: str, dir: Path | str = '.'):
+def download_data(period_name: str, target_dir: Path) -> None:
     periods = period_name.split('-')
     *first_periods, last_period = periods
 
     representation = f"period{'s ' + ', '.join(first_periods) + ' and' if len(periods) > 1 else ''} {last_period}"
 
     for period in periods:
-        if not os.path.exists(f'{dir}/period-{period}.csv'): break
+        period_csv = target_dir / f'period-{period}.csv'
+
+        if not period_csv.exists(): break
+
 
     # This else block will only run if the for loop above completes without breaking
     else:
@@ -42,7 +51,7 @@ def download_data(period_name: str, dir: Path | str = '.'):
 
     with ZipFile(buffer) as zip_ref:
         print(f'Extracting {representation}...', end='\r')
-        zip_ref.extractall(dir)
+        zip_ref.extractall(target_dir)
         print(f'Done extracting {representation}!')
 
 
