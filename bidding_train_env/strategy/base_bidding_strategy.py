@@ -1,5 +1,6 @@
-from abc import ABC, abstractmethod
 from numpy.typing import NDArray
+
+from abc import ABC, abstractmethod
 
 class BaseBiddingStrategy(ABC):
     """
@@ -8,10 +9,10 @@ class BaseBiddingStrategy(ABC):
 
     def __init__(
             self,
-            budget=100,
-            name="BaseStrategy",
-            cpa=2,
-            category=1
+            budget: float = 100.,
+            name: str     = "BaseStrategy",
+            cpa: float    = 2,
+            category: int = 1
         ):
         """
         Initialize the bidding strategy.
@@ -26,6 +27,10 @@ class BaseBiddingStrategy(ABC):
         self.name = name
         self.cpa = cpa
         self.category = category
+
+
+    def __repr__(self) -> str:
+        return f"{self.name}(budget={self.budget}, cpa={self.cpa}, category={self.category})"
 
 
     def reset(self):
@@ -64,3 +69,4 @@ class BaseBiddingStrategy(ABC):
             Return the bids for all the opportunities in the delivery period.
         """
         pass
+

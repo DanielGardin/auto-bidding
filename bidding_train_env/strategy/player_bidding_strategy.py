@@ -7,6 +7,15 @@ class PlayerBiddingStrategy(BaseBiddingStrategy):
     """
     Simple Strategy example for bidding.
     """
+    def __init__(
+            self,
+            budget: float = 100.,
+            name: str     = "PlayerStrategy",
+            cpa: float    = 2,
+            category: int = 1
+        ):
+        super().__init__(budget, name, cpa, category)
+
     def bidding(
             self,
             timeStepIndex          : int,
