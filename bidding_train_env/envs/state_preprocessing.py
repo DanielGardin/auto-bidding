@@ -21,10 +21,12 @@ def statistics_observation(
     if timeStepIndex == 0:
         historical_mean_bid                = 0.
         last_three_bid_mean                = 0.
+
         historical_mean_least_winning_cost = 0.
         historical_mean_pValues            = 0.
         historical_conversion_mean         = 0.
         historical_xi_mean                 = 0.
+
         last_three_LeastWinningCost_mean   = 0.
         last_three_pValues_mean            = 0.
         last_three_conversion_mean         = 0.
@@ -35,15 +37,14 @@ def statistics_observation(
         last_three_bid_mean = np.mean([np.mean(array) for array in historyBid[-3:]])
 
         historical_mean_least_winning_cost = np.mean([np.mean(array) for array in historyLeastWinningCost])
-        historical_mean_pValues            = np.mean([np.mean(array[0]) for array in historyPValueInfo])
+        historical_mean_pValues            = np.mean([np.mean(array[:, 0]) for array in historyPValueInfo])
         historical_conversion_mean         = np.mean([np.mean(array) for array in historyImpressionResult])
-        historical_xi_mean                 = np.mean([np.mean(array[0]) for array in historyAuctionResult])
-
+        historical_xi_mean                 = np.mean([np.mean(array[:, 0]) for array in historyAuctionResult])
 
         last_three_LeastWinningCost_mean = np.mean([np.mean(array) for array in historyLeastWinningCost[-3:]])
-        last_three_pValues_mean          = np.mean([np.mean(array[0]) for array in historyPValueInfo[-3:]])
+        last_three_pValues_mean          = np.mean([np.mean(array[:, 0]) for array in historyPValueInfo[-3:]])
         last_three_conversion_mean       = np.mean([np.mean(array) for array in historyImpressionResult[-3:]])
-        last_three_xi_mean               = np.mean([np.mean(array[0]) for array in historyAuctionResult[-3:]])
+        last_three_xi_mean               = np.mean([np.mean(array[:, 0]) for array in historyAuctionResult[-3:]])
 
     current_pValues_mean = np.mean(pValues)
     current_pv_num = len(pValues)

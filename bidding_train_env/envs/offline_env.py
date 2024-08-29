@@ -73,10 +73,13 @@ class OfflineBiddingEnv:
 
 
     def get_obs(self):
-        advertiser = str(self.advertiser_number)
+        if not self.is_terminal():
+            pValues       = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValue'].to_numpy()
+            pValuesSigmas = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValueSigma'].to_numpy()
 
-        pValues       = self.period_data.loc[self.current_timestep][advertiser, 'pValue'].to_numpy()
-        pValuesSigmas = self.period_data.loc[self.current_timestep][advertiser, 'pValueSigma'].to_numpy()
+        else:
+            pValues       = np.array([])
+            pValuesSigmas = np.array([])
 
         obs = {
             "timeStepIndex": self.current_timestep,
@@ -110,6 +113,8 @@ class OfflineBiddingEnv:
         self.remaining_budget = self.budget
         self.period_data = pd.read_parquet(self.DATA_PATH / f'bidding-period-{period}.parquet')
 
+        self.max_timesteps: int = self.period_data.index.get_level_values('timeStepIndex').max()
+
         self.current_period = period
         self.current_timestep = 0
 
@@ -126,26 +131,23 @@ class OfflineBiddingEnv:
         """
             Check if the environment has reached a terminal state.
         """
-        return self.current_timestep >= len(self.period_data) or self.remaining_budget < self.MIN_BUDGET
+        return self.current_timestep >= self.max_timesteps or self.remaining_budget < self.MIN_BUDGET
 
 
     def step(self, bids: Optional[NDArray] = None):
+        if self.is_terminal():
+            return self.get_obs(), 0, self.is_terminal(), self.get_info()
+
         if bids is None:
-            bids = self.period_data.loc[self.current_timestep][str(self.advertiser_number), 'bid'].to_numpy()
+            bids = self.period_data.loc[self.current_timestep][self.advertiser_number, 'bid'].to_numpy()
 
         elif len(bids) != len(self.period_data.loc[self.current_timestep]):
             raise ValueError(f"Number of bids ({len(bids)}) does not match number of opportunities ({len(self.period_data.loc[self.current_timestep])})")
 
+        pValues           = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValue'].to_numpy()
+        pValuesSigmas     = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValueSigma'].to_numpy()
+        leastWinningCosts = self.impressions.loc[self.current_period, self.current_timestep][(3, 'cost')].to_numpy() # type: ignore
 
-        if self.is_terminal():
-            return None, 0, self.is_terminal(), self.get_info()
-
-        advertiser = str(self.advertiser_number)
-
-        pValues           = self.period_data.loc[self.current_timestep][advertiser, 'pValue'].to_numpy()
-        pValuesSigmas     = self.period_data.loc[self.current_timestep][advertiser, 'pValueSigma'].to_numpy()
-        leastWinningCosts = self.impressions.loc[self.current_period, self.current_timestep][('3', 'cost')].to_numpy() # type: ignore
-        
         winning_bids, costs, conversions = self.simulate_ad_bidding(bids, pValues, pValuesSigmas, leastWinningCosts)
 
         if costs.sum() > self.remaining_budget - self.MIN_BUDGET:
@@ -159,10 +161,10 @@ class OfflineBiddingEnv:
         reward = conversions.sum()
 
         # Update history
-        self.history['historyPValueInfo'].append(np.stack([pValues, pValuesSigmas]))
+        self.history['historyPValueInfo'].append(np.stack([pValues, pValuesSigmas]).T)
         self.history['historyBid'].append(bids)
-        self.history['historyAuctionResult'].append(np.stack([winning_bids, costs]))
-        self.history['historyImpressionResult'].append(conversions)
+        self.history['historyAuctionResult'].append(np.stack([winning_bids, winning_bids, costs]).T)
+        self.history['historyImpressionResult'].append(np.stack([conversions, conversions]).T)
         self.history['historyLeastWinningCost'].append(leastWinningCosts)
 
         # Running statistics
