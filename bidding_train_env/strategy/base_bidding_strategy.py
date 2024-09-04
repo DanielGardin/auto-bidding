@@ -1,12 +1,19 @@
-from abc import ABC, abstractmethod
+from numpy.typing import NDArray
 
+from abc import ABC, abstractmethod
 
 class BaseBiddingStrategy(ABC):
     """
     Base bidding strategy interface defining methods to be implemented.
     """
 
-    def __init__(self, budget=100, name="BaseStrategy", cpa=2, category=1):
+    def __init__(
+            self,
+            budget: float = 100.,
+            name: str     = "BaseStrategy",
+            cpa: float    = 2,
+            category: int = 1
+        ):
         """
         Initialize the bidding strategy.
         parameters:
@@ -21,17 +28,30 @@ class BaseBiddingStrategy(ABC):
         self.cpa = cpa
         self.category = category
 
-    @abstractmethod
+
+    def __repr__(self) -> str:
+        return f"{self.name}(budget={self.budget}, cpa={self.cpa}, category={self.category})"
+
+
     def reset(self):
         """
         Reset the remaining budget to its initial state.
-        Must be implemented in subclasses.
         """
-        pass
+        self.remaining_budget = self.budget
+
 
     @abstractmethod
-    def bidding(self, timeStepIndex, pValues, pValueSigmas, historyPValueInfo, historyBid,
-                historyAuctionResult, historyImpressionResult, historyLeastWinningCost):
+    def bidding(
+            self,
+            timeStepIndex          : int,
+            pValues                : NDArray,
+            pValueSigmas           : NDArray,
+            historyPValueInfo      : list[NDArray],
+            historyBid             : list[NDArray],
+            historyAuctionResult   : list[NDArray],
+            historyImpressionResult: list[NDArray],
+            historyLeastWinningCost: list[NDArray],
+        ) -> NDArray:
         """
         Bids for all the opportunities in a delivery period
 
@@ -48,5 +68,5 @@ class BaseBiddingStrategy(ABC):
         return:
             Return the bids for all the opportunities in the delivery period.
         """
-
         pass
+
