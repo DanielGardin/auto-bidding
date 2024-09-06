@@ -8,7 +8,7 @@ import random
 
 
 class EpisodeReplayBuffer(Dataset):
-    def __init__(self, state_dim, act_dim, data_path, max_ep_len=24, scale=2000, K=20):
+    def __init__(self, state_dim, act_dim, max_ep_len=24, scale=2000, K=20):
         self.device = "cpu"
         super(EpisodeReplayBuffer, self).__init__()
         self.max_ep_len = max_ep_len
@@ -16,47 +16,58 @@ class EpisodeReplayBuffer(Dataset):
 
         self.state_dim = state_dim
         self.act_dim = act_dim
-        training_data = pd.read_csv(data_path)
-
-        def safe_literal_eval(val):
-            if pd.isna(val):
-                return val
-            try:
-                return ast.literal_eval(val)
-            except (ValueError, SyntaxError):
-                print(ValueError)
-                return val
-
-        training_data["state"] = training_data["state"].apply(safe_literal_eval)
-        training_data["next_state"] = training_data["next_state"].apply(safe_literal_eval)
-        self.trajectories = training_data
 
         self.states, self.rewards, self.actions, self.returns, self.traj_lens, self.dones = [], [], [], [], [], []
-        state = []
-        reward = []
-        action = []
-        dones = []
-        for index, row in self.trajectories.iterrows():
-            state.append(row["state"])
-            reward.append(row['reward'])
-            action.append(row["action"])
-            dones.append(row["done"])
-            if row["done"]:
-                if len(state) != 1:
-                    self.states.append(np.array(state))
-                    self.rewards.append(np.expand_dims(np.array(reward), axis=1))
-                    self.actions.append(np.expand_dims(np.array(action), axis=1))
-                    self.returns.append(sum(reward))
-                    self.traj_lens.append(len(state))
-                    self.dones.append(np.array(dones))
-                state = []
-                reward = []
-                action = []
-                dones = []
-        self.traj_lens, self.returns = np.array(self.traj_lens), np.array(self.returns)
+        
+        trajectories_path = [
+        "./data/traffic/trajectory/trajectory_data.csv",
+        # "./data/traffic/trajectory/trajectory_data_extended_1.csv",
+        # "./data/traffic/trajectory/trajectory_data_extended_2.csv"
+        ]
 
-        tmp_states = np.concatenate(self.states, axis=0)
-        self.state_mean, self.state_std = np.mean(tmp_states, axis=0), np.std(tmp_states, axis=0) + 1e-6
+        for t in trajectories_path:
+            training_data = pd.read_csv(t)
+
+            def safe_literal_eval(val):
+                if pd.isna(val):
+                    return val
+                try:
+                    return ast.literal_eval(val)
+                except (ValueError, SyntaxError):
+                    print(ValueError)
+                    return val
+
+            training_data["state"] = training_data["state"].apply(safe_literal_eval)
+            training_data["next_state"] = training_data["next_state"].apply(safe_literal_eval)
+            self.trajectories = training_data
+
+            state = []
+            reward = []
+            action = []
+            dones = []
+            for index, row in self.trajectories.iterrows():
+                state.append(row["state"])
+                reward.append(row['reward'])
+                action.append(row["action"])
+                dones.append(row["done"])
+                if row["done"]:
+                    if len(state) != 1:
+                        self.states.append(np.array(state))
+                        self.rewards.append(np.expand_dims(np.array(reward), axis=1))
+                        self.actions.append(np.expand_dims(np.array(action), axis=1))
+                        self.returns.append(sum(reward))
+                        self.traj_lens.append(len(state))
+                        self.dones.append(np.array(dones))
+                    state = []
+                    reward = []
+                    action = []
+                    dones = []
+
+            tmp_states = np.concatenate(self.states, axis=0)
+            self.state_mean, self.state_std = np.mean(tmp_states, axis=0), np.std(tmp_states, axis=0) + 1e-6
+
+        
+        self.traj_lens, self.returns = np.array(self.traj_lens), np.array(self.returns)
 
         self.trajectories = []
         for i in range(len(self.states)):

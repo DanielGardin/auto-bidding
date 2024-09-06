@@ -4,6 +4,9 @@ from bidding_train_env.baseline.dt.utils import EpisodeReplayBuffer
 from bidding_train_env.baseline.dt.dt import DecisionTransformer
 from torch.utils.data import DataLoader, WeightedRandomSampler
 import logging
+import copy
+import torch
+
 import pickle
 
 # 配置日志
@@ -21,32 +24,29 @@ def run_dt():
 def train_model():
     state_dim = 16
 
-    trajectories = [
-        "./data/traffic/trajectory/trajectory_data.csv",
-        "./data/traffic/trajectory/trajectory_data_extended_1.csv",
-        "./data/traffic/trajectory/trajectory_data_extended_2.csv"
-    ]
+    replay_buffer = EpisodeReplayBuffer(16, 1)
+    # save_normalize_dict({"state_mean": replay_buffer.state_mean, "state_std": replay_buffer.state_std},
+    #                     "saved_model/DTtest")
+    logger.info(f"Replay buffer size: {len(replay_buffer.trajectories)}")
 
-    for t in trajectories:
-        replay_buffer = EpisodeReplayBuffer(16, 1, t)
-        save_normalize_dict({"state_mean": replay_buffer.state_mean, "state_std": replay_buffer.state_std},
-                            "saved_model/DTtest")
-        logger.info(f"Replay buffer size: {len(replay_buffer.trajectories)}")
+    model = DecisionTransformer(state_dim=state_dim, act_dim=1, state_mean=replay_buffer.state_mean,
+                                state_std=replay_buffer.state_std)
 
-        model = DecisionTransformer(state_dim=state_dim, act_dim=1, state_mean=replay_buffer.state_mean,
-                                    state_std=replay_buffer.state_std)
-        step_num = 10000
-        batch_size = 32
-        sampler = WeightedRandomSampler(replay_buffer.p_sample, num_samples=step_num * batch_size, replacement=True)
-        dataloader = DataLoader(replay_buffer, sampler=sampler, batch_size=batch_size)
 
-        model.train()
-        i = 0
-        for states, actions, rewards, dones, rtg, timesteps, attention_mask in dataloader:
-            train_loss = model.step(states, actions, rewards, dones, rtg, timesteps, attention_mask)
-            i += 1
-            logger.info(f"Step: {i} Action loss: {np.mean(train_loss)}")
-            model.scheduler.step()
+    step_num = 10000
+    batch_size = 32
+    sampler = WeightedRandomSampler(replay_buffer.p_sample, num_samples=step_num * batch_size, replacement=True)
+    dataloader = DataLoader(replay_buffer, sampler=sampler, batch_size=batch_size)
+
+    model.train()
+    i = 0
+    for states, actions, rewards, dones, rtg, timesteps, attention_mask in dataloader:
+        train_loss = model.step(states, actions, rewards, dones, rtg, timesteps, attention_mask)
+        i += 1
+        logger.info(f"Step: {i} Action loss: {np.mean(train_loss)}")
+        model.scheduler.step()
+        
+
 
     model.save_net("saved_model/DTtest")
     test_state = np.ones(state_dim, dtype=np.float32)
