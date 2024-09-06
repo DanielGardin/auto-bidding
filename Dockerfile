@@ -1,45 +1,28 @@
-ARG CUDA_VERSION=12.2.0
+FROM competition-hub-registry.cn-beijing.cr.aliyuncs.com/alimama-competition/bidding-results:base
 
-FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu22.04
+# Setting root and copying files
+WORKDIR /root/biddingTrainEnv
+COPY .. .
 
-ENV SHELL=/bin/bash
 
-WORKDIR /work/
-
+# Many boring steps to install python3.11 and pip
 RUN apt-get update
-RUN apt-get install -y \
-    curl \
-    wget \
-    git \
-    openssh-client \
-    rsync
-
-RUN git config --global --add safe.directory /work/
+RUN apt-get install -y wget 
 
 ENV TZ=America/Sao_Paulo
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
 RUN apt-get install -y software-properties-common
 RUN add-apt-repository -y ppa:deadsnakes/ppa
-RUN apt-get install -y \
-    build-essential \ 
-    python3.11 \
-    python3.11-dev \
-    libmpc-dev
-    
-RUN ln -s /usr/bin/python3.11 /usr/bin/python
+RUN apt-get install -y python3.11
+RUN update-alternatives --install /usr/local/bin/python3 python3 /usr/local/bin/python3.9 1
+RUN update-alternatives --install /usr/local/bin/python3 python3 /usr/bin/python3.11 2
+RUN update-alternatives --set python3 /usr/bin/python3.11
 RUN wget -qO- https://bootstrap.pypa.io/get-pip.py | python
 
+# Install requirements
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-RUN rm requirements.txt
+# Run the evaluation script
+CMD ["python3", "./run/run_evaluate.py"]
 
-RUN pip install notebook
-
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-
-EXPOSE 8000
+ENV PYTHONPATH="/root/biddingTrainEnv:${PYTHONPATH}"

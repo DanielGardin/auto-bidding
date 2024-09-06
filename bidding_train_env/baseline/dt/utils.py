@@ -21,8 +21,8 @@ class EpisodeReplayBuffer(Dataset):
         
         trajectories_path = [
         "./data/traffic/trajectory/trajectory_data.csv",
-        # "./data/traffic/trajectory/trajectory_data_extended_1.csv",
-        # "./data/traffic/trajectory/trajectory_data_extended_2.csv"
+        "./data/traffic/trajectory/trajectory_data_extended_1.csv",
+        "./data/traffic/trajectory/trajectory_data_extended_2.csv"
         ]
 
         for t in trajectories_path:
