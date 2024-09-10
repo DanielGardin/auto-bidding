@@ -3,7 +3,7 @@
 
 General utility functions that does not depend on any object in the project.
 """
-from typing import Any, Sequence
+from typing import Any, Sequence, Callable
 
 from pathlib import Path
 
@@ -11,6 +11,7 @@ from omegaconf import OmegaConf
 
 import torch.optim as optim
 from torch.nn import Module
+import torch
 
 def get_root_path():
     return Path(__file__).parent.parent
@@ -110,3 +111,35 @@ def get_optimizer(
     
     else:
         return optimizer_cls(model.parameters(), **kwargs)
+
+
+def get_activation(activation: Callable[[torch.Tensor], torch.Tensor] | str | None) -> Callable[[torch.Tensor], torch.Tensor]:
+    if activation is None:
+        return lambda x: x
+
+    if activation == 'softmax':
+        return torch.nn.Softmax(dim=-1)
+
+    if isinstance(activation, str):
+        activation_fn = getattr(torch.nn.functional, activation, None)
+
+        if activation_fn is not None and isinstance(activation_fn(torch.randn(1,2)), torch.Tensor):
+            return activation_fn
+
+        activation_fn = getattr(torch.nn, activation, None)
+
+        if activation_fn is not None and isinstance(activation_fn()(torch.randn(1,2)), torch.Tensor):
+            return activation_fn
+
+
+        raise ValueError(f"Activation function {activation} not found")
+    
+    else:
+        return activation
+
+
+def turn_off_grad(model: Module):
+    model.eval()
+
+    for param in model.parameters():
+        param.requires_grad = False

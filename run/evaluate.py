@@ -73,8 +73,8 @@ if __name__ == "__main__":
         help="Bidding strategy to evaluate."
     )
     parser.add_argument(
-        "--path",
-        '-p',
+        "--actor",
+        '-a',
         type=str,
         default=None,
         help="Path to the model to load."

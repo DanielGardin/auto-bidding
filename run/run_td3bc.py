@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 from omegaconf import OmegaConf, MISSING
 
 from bidding_train_env.utils import get_root_path, set_seed, get_optimizer,config_to_dict
-from bidding_train_env.import_utils import get_actor, get_critic, get_value, get_strategy, get_env
-from bidding_train_env.algorithms import IQL
+from bidding_train_env.import_utils import get_actor, get_critic, get_strategy, get_env
+from bidding_train_env.algorithms import TD3BC
 from bidding_train_env.replaybuffer import ReplayBuffer
 
 import logging
@@ -27,7 +27,7 @@ class GeneralParams:
     device: str          = "auto"
     project_name: str    = "bidding_train_env"
     project_path: str    = str(get_root_path())
-    experiment_name: str = "iql"
+    experiment_name: str = "td3bc"
 
 @dataclass
 class DataParams:
@@ -54,8 +54,6 @@ class ModelParams:
     critic: str                   = MISSING
     critic_params: dict[str, Any] = field(default_factory=dict)
     num_critics: int              = 2
-    value: str                    = MISSING
-    value_params: dict[str, Any]  = field(default_factory=dict)
 
 @dataclass
 class TrainParams:
@@ -66,23 +64,23 @@ class TrainParams:
     actor_optimizer_params: dict[str, Any]  = field(default_factory=lambda : dict(lr=MISSING))
     critic_optimizer: str                   = MISSING
     critic_optimizer_params: dict[str, Any] = field(default_factory=lambda : dict(lr=MISSING))
-    value_optimizer: str                    = MISSING
-    value_optimizer_params: dict[str, Any]  = field(default_factory=lambda : dict(lr=MISSING))
     tau: float                              = 0.005
     gamma: float                            = 0.99
-    expectile: float                        = 0.5
-    temperature: float                      = 0.1
+    alpha: float                            = 0.2
+    noise_std: float                        = 0.2
+    noise_clip: float                       = 0.5
+    actor_update_freq: int                  = 2
 
 @dataclass
 class LoggingParams:
-    log_dir: str                       = 'logs/iql'
+    log_dir: str                       = 'logs/td3bc'
     log_interval: Optional[int]        = None
     checkpoint_interval: Optional[int] = None
     use_wandb: bool                    = False
     verbose: bool                      = False
 
 @dataclass
-class IQLParams:
+class TD3BCParams:
     general: GeneralParams         = field(default_factory=GeneralParams)
     data: DataParams               = field(default_factory=DataParams)
     environment: EnvironmentParams = field(default_factory=EnvironmentParams)
@@ -90,7 +88,7 @@ class IQLParams:
     train: TrainParams             = field(default_factory=TrainParams)
     logging: LoggingParams         = field(default_factory=LoggingParams)
 
-template = IQLParams()
+template = TD3BCParams()
 
 def validate_config(parameters):
     if isinstance(parameters, dict):
@@ -103,7 +101,7 @@ def validate_config(parameters):
         raise ValueError("Invalid parameters type")
 
     validated_config = OmegaConf.merge(template, params)
-    validated_config = cast(IQLParams, validated_config)
+    validated_config = cast(TD3BCParams, validated_config)
 
     return validated_config
 
@@ -142,12 +140,6 @@ default_config = {
             "activation" : "relu"
         },
         "num_critics" : 2,
-        "value" : "MLP",
-        "value_params" : {
-            "input_dim" : 16,
-            "hidden_dims" : [256, 256],
-            "activation" : "relu"
-        }
     },
     "train" : {
         "batch_size" : 100,
@@ -161,14 +153,12 @@ default_config = {
         "critic_optimizer_params" : {
             "lr"          : 1e-4,
         },
-        "value_optimizer" : "Adam",
-        "value_optimizer_params" : {
-            "lr"          : 1e-4,
-        },
-        "tau"          : 0.005,
-        "gamma"        : 0.99,
-        "expectile"    : 0.7,
-        "temperature"  : 3.,
+        "tau"              : 0.005,
+        "gamma"            : 0.99,
+        "alpha"            : 0.2,
+        "noise_std"        : 0.2,
+        "noise_clip"       : 0.5,
+        "actor_update_freq": 2
     },
     "logging" : {
         "log_dir"            : "logs/iql",
@@ -207,23 +197,20 @@ if __name__ == '__main__':
         get_critic(params.model.critic, **params.model.critic_params).to(params.general.device) for _ in range(params.model.num_critics)
     ]
 
-    value_net = get_value(params.model.value, **params.model.value_params).to(params.general.device)
-
     actor_optimizer  = get_optimizer(actor, params.train.actor_optimizer, **params.train.actor_optimizer_params)
     critic_optimizer = get_optimizer(critic_ensemble, params.train.critic_optimizer, **params.train.critic_optimizer_params)
-    value_optimizer  = get_optimizer(value_net, params.train.value_optimizer, **params.train.value_optimizer_params)
 
-    iql = IQL(
-        actor=actor,
-        critic_ensemble=critic_ensemble,
-        value_net=value_net,
-        actor_optimizer=actor_optimizer,
-        critic_optimizer=critic_optimizer,
-        value_optimizer=value_optimizer,
+    td3bc = TD3BC(
+        actor,
+        critic_ensemble,
+        actor_optimizer,
+        critic_optimizer,
         tau=params.train.tau,
         gamma=params.train.gamma,
-        expectile=params.train.expectile,
-        temperature=params.train.temperature
+        alpha=params.train.alpha,
+        noise_std=params.train.noise_std,
+        noise_clip=params.train.noise_clip,
+        actor_update_freq=params.train.actor_update_freq
     )
 
     advertiser_number = params.environment.environment_params.get('advertiser_number', 0)
@@ -275,9 +262,7 @@ if __name__ == '__main__':
         torch.tensor(data['done'].to_numpy(), dtype=torch.bool)
     )
 
-    # replay_buffer.normalize()
-
-    iql.begin_experiment(
+    td3bc.begin_experiment(
         project_name = params.general.project_name,
         experiment_name = params.general.experiment_name,
         log_dir = params.logging.log_dir,
@@ -286,7 +271,7 @@ if __name__ == '__main__':
         config = config_to_dict(params)
     )
 
-    iql.learn(
+    td3bc.learn(
         num_epochs=params.train.num_epochs,
         steps_per_epoch=params.train.steps_per_epoch,
         replay_buffer=replay_buffer,

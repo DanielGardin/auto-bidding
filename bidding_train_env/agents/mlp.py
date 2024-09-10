@@ -1,8 +1,10 @@
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Optional
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from ..utils import get_activation
 
 class MLP(nn.Module):
     def __init__(
@@ -10,7 +12,8 @@ class MLP(nn.Module):
             input_dim: int,
             hidden_dims: Sequence[int],
             output_dim: int,
-            activation: Callable[[torch.Tensor], torch.Tensor] | str = "relu"
+            activation: Callable[[torch.Tensor], torch.Tensor] | str = "relu",
+            output_activation: Optional[Callable[[torch.Tensor], torch.Tensor] | str] = None
         ):
         super(MLP, self).__init__()
 
@@ -23,14 +26,8 @@ class MLP(nn.Module):
 
         self.output_layer = nn.Linear(prev_dim, output_dim)
 
-        if isinstance(activation, str):
-            if not hasattr(F, activation):
-                raise ValueError(f"Invalid activation function: {activation}")
-            
-            self.activation = getattr(F, activation)
-        
-        else:
-            self.activation = activation
+        self.activation = get_activation(activation)
+        self.output_activation = get_activation(output_activation)
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -39,4 +36,4 @@ class MLP(nn.Module):
 
         x = self.output_layer(x)
 
-        return x
+        return self.output_activation(x)

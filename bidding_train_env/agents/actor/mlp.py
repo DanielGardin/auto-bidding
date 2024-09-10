@@ -7,13 +7,39 @@ from .base import Actor
 from ..mlp import MLP
 
 class ContinuousDeterminisitcMLP(MLP, Actor):
+    def __init__(
+            self,
+            input_dim: int,
+            hidden_dims: Sequence[int],
+            output_dim: int,
+            activation: Callable[[torch.Tensor], torch.Tensor] | str = "relu",
+            output_activation: Optional[Callable[[torch.Tensor], torch.Tensor] | str] = None,
+            action_scale: float = 1.,
+            action_interval: tuple[float, float] = (0., float('inf'))
+        ):
+        super().__init__(
+            input_dim = input_dim,
+            hidden_dims = hidden_dims,
+            output_dim = output_dim,
+            activation = activation,
+            output_activation = output_activation
+        )
+
+        self.action_scale = action_scale
+        self.action_interval = action_interval
+
+
     def get_action(
             self,
             obs: torch.Tensor,
             action: torch.Tensor | None = None
         ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
-        return self(obs), torch.tensor(0.), torch.tensor(0.)
+        if action is None:
+            sampled_action = self(obs)
+            action = torch.clamp(sampled_action * self.action_scale, *self.action_interval)
+
+        return action, torch.tensor(0.), torch.tensor(0.)
 
 
 class ContinousStochasticMLP(MLP, Actor):

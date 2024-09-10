@@ -10,7 +10,7 @@ from ..agents import Actor
 
 class SimpleBiddingStrategy(BasePolicyStrategy):
     """
-    Behavioral Cloning (bc) Strategy
+    Simple strategy using the state's statistics
     """
 
     def __init__(

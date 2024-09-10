@@ -1,11 +1,14 @@
+from typing import Sequence
+
 import torch
-import torch.nn as nn
 from torch.optim import Optimizer
 
 from tensordict import TensorDict
 
 from .base_algo import RLAlgorithm
 from ..agents import Actor, Critic, Value
+
+from ..utils import turn_off_grad
 
 from copy import deepcopy
 
@@ -14,7 +17,7 @@ class IQL(RLAlgorithm):
     def __init__(
             self,
             actor: Actor,
-            critic_ensemble: list[Critic],
+            critic_ensemble: Sequence[Critic],
             value_net: Value,
             actor_optimizer: Optimizer,
             critic_optimizer: Optimizer,
@@ -26,9 +29,13 @@ class IQL(RLAlgorithm):
         ):
         super().__init__()
 
-        self.actor = actor
-        self.critic_ensemble     = critic_ensemble
+        self.actor                  = actor
+        self.critic_ensemble        = critic_ensemble
         self.target_critic_ensemble = deepcopy(critic_ensemble)
+        
+        for critic in self.target_critic_ensemble:
+            turn_off_grad(critic)
+
 
         self.value_net = value_net
 
@@ -63,12 +70,11 @@ class IQL(RLAlgorithm):
         next_obs      = batch['next_state']
         dones         = batch['done']
 
-        with torch.no_grad():
-            target_q_ensemble = torch.stack([
-                critic.get_q_value(obs, target_action) for critic in self.target_critic_ensemble
-            ], dim=-1)
+        target_q_ensemble = torch.stack([
+            critic.get_q_value(obs, target_action) for critic in self.target_critic_ensemble
+        ], dim=-1)
 
-            target_q_values = target_q_ensemble.min(dim=-1).values
+        target_q_values = target_q_ensemble.min(dim=-1).values
 
         # Value update
         value = self.value_net.get_value(obs)
@@ -96,7 +102,7 @@ class IQL(RLAlgorithm):
             target_values = target_values.unsqueeze(-1)
 
 
-        critic_loss = ((q_ensemble - target_values)**2).mean()
+        critic_loss = ((q_ensemble - target_values)**2).mean(dim=0).sum()
 
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
@@ -107,11 +113,11 @@ class IQL(RLAlgorithm):
         advantages = advantages.detach()
 
         exp_advantages = torch.exp(advantages * self.temperature)
-        exp_advantages = torch.clip(exp_advantages, max=100.)
+        exp_advantages = torch.clamp(exp_advantages, max=100.)
 
-        _, log_prob, _ = self.actor.get_action(obs)
+        _, log_prob, _ = self.actor.get_action(obs, target_action)
 
-        actor_loss = (exp_advantages * log_prob).mean()
+        actor_loss = -(exp_advantages * log_prob).mean()
 
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
