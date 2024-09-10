@@ -6,8 +6,9 @@ from time import perf_counter
 import logging
 import numpy as np
 
-from bidding_train_env.envs import OfflineBiddingEnv
-from bidding_train_env.strategy import BaseBiddingStrategy, get_strategy
+from bidding_train_env.import_utils import get_env, get_strategy
+from bidding_train_env.envs import BiddingEnv
+from bidding_train_env.strategy import BaseBiddingStrategy
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,35 +18,26 @@ logger = logging.getLogger(__name__)
 
 
 def evaluate_strategy_offline(
-        agent: BaseBiddingStrategy,
-        advertiser_number: int = 0,
-        period: int = 7,
-
+        env: BiddingEnv,
+        strategy: BaseBiddingStrategy
     ):
     """
     offline evaluation
     """
     start = perf_counter()
 
-    env = OfflineBiddingEnv(
-        0,
-        agent.category,
-        agent.budget,
-        agent.cpa,
-    )
-    
     logger.info(
-        f"Evaluating strategy {agent.name} for advertiser {advertiser_number} in period {period}."
+        f"Evaluating strategy {strategy} on environment {env}."
     )
 
     cumulative_reward = 0
     num_steps = 0
 
-    obs, info = env.reset(period)
+    obs, info = env.reset()
 
     done = False
     while not done:
-        action = agent.bidding(**obs)
+        action = strategy.bidding(**obs)
         obs, reward, done, info = env.step(action)
 
         cumulative_reward += reward
@@ -64,7 +56,7 @@ def evaluate_strategy_offline(
 
     logger.info(f"Strategy evaluation completed within {num_steps} steps, in {time_str}.")
     logger.info(f"Total reward: {cumulative_reward}")
-    logger.info(f"Total cost: {agent.budget - env.remaining_budget}")
+    logger.info(f"Total cost: {strategy.budget - env.remaining_budget}")
     logger.info(f"Total conversions: {info['conversions']}")
     logger.info(f"Total wins: {info['wins']}")
     logger.info(f"CPA: {info['cpa']}")
@@ -94,6 +86,6 @@ if __name__ == "__main__":
     if args.path is not None:
         model_path = Path(args.path)
 
-    agent = get_strategy(args.strategy, model_path)()
+    strategy = get_strategy(args.strategy, model_path)()
 
     evaluate_strategy_offline(agent)

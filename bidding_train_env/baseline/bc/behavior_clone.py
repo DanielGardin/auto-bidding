@@ -53,6 +53,7 @@ class BC(nn.Module):
             loss.backward()
             self.actor_optimizer.step()
             loss_list.append(loss.item())
+
         return np.array(loss_list)
 
     def take_actions(self, states):

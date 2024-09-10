@@ -1,8 +1,11 @@
 from numpy.typing import NDArray
 
 from abc import ABC, abstractmethod
+from torch import Tensor
 
-class BaseBiddingStrategy(ABC):
+from ..agents import Actor
+
+class BaseBiddingStrategy:
     """
     Base bidding strategy interface defining methods to be implemented.
     """
@@ -28,7 +31,6 @@ class BaseBiddingStrategy(ABC):
         self.cpa = cpa
         self.category = category
 
-
     def __repr__(self) -> str:
         return f"{self.name}(budget={self.budget}, cpa={self.cpa}, category={self.category})"
 
@@ -40,7 +42,57 @@ class BaseBiddingStrategy(ABC):
         self.remaining_budget = self.budget
 
 
-    @abstractmethod
+    def pay(self, cost: float):
+        """
+        Pay the cost from the remaining budget.
+        """
+        self.remaining_budget -= cost
+
+
+    def preprocess(
+            self,
+            timeStepIndex          : int,
+            pValues                : NDArray,
+            pValueSigmas           : NDArray,
+            historyPValueInfo      : list[NDArray],
+            historyBid             : list[NDArray],
+            historyAuctionResult   : list[NDArray],
+            historyImpressionResult: list[NDArray],
+            historyLeastWinningCost: list[NDArray],
+        ) -> Tensor:
+        ...
+    
+
+    def action_to_bid(
+            self,
+            timeStepIndex          : int,
+            pValues                : NDArray,
+            pValueSigmas           : NDArray,
+            historyPValueInfo      : list[NDArray],
+            historyBid             : list[NDArray],
+            historyAuctionResult   : list[NDArray],
+            historyImpressionResult: list[NDArray],
+            historyLeastWinningCost: list[NDArray],
+            action: Tensor
+        ) -> NDArray:
+        ...
+
+
+    def get_bid_action(
+            self,
+            timeStepIndex          : int,
+            pValues                : NDArray,
+            pValueSigmas           : NDArray,
+            historyPValueInfo      : list[NDArray],
+            historyBid             : list[NDArray],
+            historyAuctionResult   : list[NDArray],
+            historyImpressionResult: list[NDArray],
+            historyLeastWinningCost: list[NDArray],
+        ) -> tuple[NDArray, Tensor, Tensor]:
+        # Default bidding strategy will be removed in the future in favor to abc
+        return self.cpa * pValues, Tensor(0.), Tensor(0.)
+
+
     def bidding(
             self,
             timeStepIndex          : int,
@@ -68,5 +120,129 @@ class BaseBiddingStrategy(ABC):
         return:
             Return the bids for all the opportunities in the delivery period.
         """
+        bids, _, _ = self.get_bid_action(
+            timeStepIndex,
+            pValues,
+            pValueSigmas,
+            historyPValueInfo,
+            historyBid,
+            historyAuctionResult,
+            historyImpressionResult,
+            historyLeastWinningCost,
+        )
+
+        return bids
+
+
+class BasePolicyStrategy(BaseBiddingStrategy, ABC):
+    """
+    Base policy strategy interface defining methods to be implemented.
+    """
+
+    def __init__(
+            self,
+            agent: Actor,
+            budget: float = 100.,
+            name: str     = "BasePolicyStrategy",
+            cpa: float    = 2,
+            category: int = 1
+        ):
+        """
+        Initialize the policy strategy.
+        parameters:
+            @budget: the advertiser's budget for a delivery period.
+            @cpa: the CPA constraint of the advertiser.
+            @category: the index of advertiser's industry category.
+
+        """
+        super().__init__(budget, name, cpa, category)
+
+        self.agent = agent
+
+
+    @property
+    def device(self):
+        return next(self.agent.parameters()).device
+
+
+    @abstractmethod
+    def preprocess(
+            self,
+            timeStepIndex          : int,
+            pValues                : NDArray,
+            pValueSigmas           : NDArray,
+            historyPValueInfo      : list[NDArray],
+            historyBid             : list[NDArray],
+            historyAuctionResult   : list[NDArray],
+            historyImpressionResult: list[NDArray],
+            historyLeastWinningCost: list[NDArray],
+        ) -> Tensor:
+        """
+        Preprocess the observation data into a tensor for the agent.
+        """
+
         pass
 
+
+    def get_action(self, obs) -> tuple[Tensor, Tensor, Tensor]:
+        return self.agent.get_action(obs)
+
+
+    @abstractmethod
+    def action_to_bid(
+            self,
+            timeStepIndex          : int,
+            pValues                : NDArray,
+            pValueSigmas           : NDArray,
+            historyPValueInfo      : list[NDArray],
+            historyBid             : list[NDArray],
+            historyAuctionResult   : list[NDArray],
+            historyImpressionResult: list[NDArray],
+            historyLeastWinningCost: list[NDArray],
+            action: Tensor
+        ) -> NDArray:
+        """
+        Given the observation and an action sampled from the agent, convert the action to bids.
+        """
+
+        pass
+
+
+    def get_bid_action(
+            self,
+            timeStepIndex          : int,
+            pValues                : NDArray,
+            pValueSigmas           : NDArray,
+            historyPValueInfo      : list[NDArray],
+            historyBid             : list[NDArray],
+            historyAuctionResult   : list[NDArray],
+            historyImpressionResult: list[NDArray],
+            historyLeastWinningCost: list[NDArray],
+        ) -> tuple[NDArray, Tensor, Tensor]:
+
+        obs = self.preprocess(
+            timeStepIndex,
+            pValues,
+            pValueSigmas,
+            historyPValueInfo,
+            historyBid,
+            historyAuctionResult,
+            historyImpressionResult,
+            historyLeastWinningCost,
+        ).to(self.device)
+
+        action, log_prob, entropy = self.get_action(obs)
+
+        bids = self.action_to_bid(
+            timeStepIndex,
+            pValues,
+            pValueSigmas,
+            historyPValueInfo,
+            historyBid,
+            historyAuctionResult,
+            historyImpressionResult,
+            historyLeastWinningCost,
+            action
+        )
+
+        return bids, action, log_prob
