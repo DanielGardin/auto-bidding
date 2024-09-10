@@ -10,8 +10,33 @@ import torch
 from tensordict import TensorDict
 
 RB_KEYS = Literal['state', 'action', 'reward', 'next_state', 'done']
+ERB_KEYS = Literal['states', 'actions', 'rewards', 'dones', 'mask', 'returns']
 
-class ReplayBuffer:
+
+class AbstractReplayBuffer:
+    def push(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def sample(self, batch_size: int) -> TensorDict:
+        raise NotImplementedError
+
+    def normalize(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def to(self, device: Device):
+        raise NotImplementedError
+
+    def __getitem__(self, key: RB_KEYS) -> torch.Tensor:
+        raise NotImplementedError
+
+    def __repr__(self) -> str:
+        raise NotImplementedError
+
+    def __len__(self):
+        raise NotImplementedError
+
+
+class ReplayBuffer(AbstractReplayBuffer):
     def __init__(
             self,
             capacity: int,
@@ -127,13 +152,14 @@ class ReplayBuffer:
             reward_std : Optional[torch.Tensor] = None
         ):
         self.state_normalization['mean'] = \
-            self.buffer['state'].mean(dim=0) if state_mean is None else state_mean
+            self['state'].mean(dim=0) if state_mean is None else state_mean
 
         self.state_normalization['std'] = \
-            self.buffer['state'].std(dim=0) if state_std is None else state_std
+            self['state'].std(dim=0) if state_std is None else state_std
 
         self.reward_normalization['mean'] = \
-            self.buffer['reward'].mean() if reward_mean is None else reward_mean
+            self['reward'].mean() if reward_mean is None else reward_mean
         
         self.reward_normalization['std'] = \
-            self.buffer['reward'].std() if reward_std is None else reward_std
+            self['reward'].std() if reward_std is None else reward_std
+

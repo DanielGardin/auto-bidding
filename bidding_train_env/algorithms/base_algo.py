@@ -10,7 +10,7 @@ from tensordict import TensorDict
 from torch.optim.lr_scheduler import LRScheduler
 
 from ..utils import get_root_path
-from ..replaybuffer import ReplayBuffer
+from ..replaybuffer import AbstractReplayBuffer
 from ..envs import BiddingEnv
 
 from collections import defaultdict
@@ -47,7 +47,7 @@ class RLAlgorithm(nn.Module, ABC):
 
     
     # These methods are for future use
-    def on_epoch_start(self, replay_buffer: ReplayBuffer) -> dict[str, Any]:
+    def on_epoch_start(self, replay_buffer: AbstractReplayBuffer) -> dict[str, Any]:
         return {}
 
 
@@ -93,7 +93,7 @@ class RLAlgorithm(nn.Module, ABC):
             self,
             num_epochs: int,
             steps_per_epoch: int,
-            replay_buffer: ReplayBuffer,
+            replay_buffer: AbstractReplayBuffer,
             batch_size: int,
             eval_env: BiddingEnv,
             lr_scheduler: Optional[LRScheduler] = None,
