@@ -9,12 +9,29 @@ import torch
 class aigb_dataset(Dataset):
     def __init__(self, step_len, **kwargs) -> None:
         super().__init__()
-        states, actions, rewards, terminals = load_local_data_nips(
-            train_data_path="data/traffic/trajectory/trajectory_data.csv")
-        self.states = states
-        self.actions = actions
-        self.rewards = rewards
-        self.terminals = terminals
+
+        paths = [
+            "./data/traffic/trajectory/trajectory_data.csv",
+            "./data/traffic/trajectory/trajectory_data_extended_1.csv",
+            "./data/traffic/trajectory/trajectory_data_extended_2.csv"
+        ]
+
+        for i in range(len(paths)):
+            states, actions, rewards, terminals = load_local_data_nips(train_data_path=paths[i])
+
+            if i == 0:
+                self.states = states
+                self.actions = actions
+                self.rewards = rewards
+                self.terminals = terminals
+            
+            else:
+                self.states = np.concatenate([self.states, states], axis=0)
+                self.actions = np.concatenate([self.actions, actions], axis=0)
+                self.rewards = np.concatenate([self.rewards, rewards], axis=0)
+                self.terminals = np.concatenate([self.terminals, terminals], axis=0)
+
+
         self.step_len = step_len
         self.num_of_states = states.shape[1]
         self.num_of_actions = actions.shape[1]

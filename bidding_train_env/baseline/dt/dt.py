@@ -208,6 +208,7 @@ class DecisionTransformer(nn.Module):
 
     def step(self, states, actions, rewards, dones, rtg, timesteps, attention_mask):
         rewards_target, action_target, rtg_target = torch.clone(rewards), torch.clone(actions), torch.clone(rtg)
+        states = states.to(device=self.device)
 
         state_preds, action_preds, return_preds, reward_preds = self.forward(
             states, actions, rewards, rtg[:, :-1], timesteps, attention_mask=attention_mask,

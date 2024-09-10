@@ -9,7 +9,7 @@ def run_decision_diffuser(
         save_path="saved_model/DDtest",
         train_epoch=1,
         batch_size=1000):
-    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("train_epoch", train_epoch)
     print("batch-size", batch_size)
 
