@@ -172,4 +172,4 @@ class DecisionTransformer(nn.Module):
 
 
 
-        return torch.tensor(0.), torch.tensor(0.), torch.tensor(0.)
+        return action, torch.tensor(0.), torch.tensor(0.)
