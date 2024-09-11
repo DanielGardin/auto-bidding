@@ -3,13 +3,13 @@ from typing import Callable, Sequence, Optional
 import torch
 import torch.nn as nn
 
-from .base import Actor
+from ..base import Actor
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class DecisionTransformer(nn.Module):
+class DecisionTransformer(Actor):
 
     def __init__(self, 
                  state_dim: int, 
@@ -160,7 +160,7 @@ class DecisionTransformer(nn.Module):
         self.eval_actions[-1] = action
 
     
-        reward = self.get_reward()
+        reward = obs
         self.eval_rewards = torch.cat([self.eval_rewards, torch.zeros(1)])
         self.eval_rewards[-1] = reward
 
