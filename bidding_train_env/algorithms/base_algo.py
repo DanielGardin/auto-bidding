@@ -162,6 +162,7 @@ class RLAlgorithm(nn.Module, ABC):
 
             if self.checkpoint_interval is not None and epoch % self.checkpoint_interval == 0:
                 torch.save(self.state_dict(), self.checkpoint_dir / f'checkpoint_{epoch}.pth')
+                torch.save(self.actor.state_dict(), self.checkpoint_dir / f'actor_checkpoint_{epoch}.pth')
 
             if lr_scheduler is not None:
                 lr_scheduler.step()

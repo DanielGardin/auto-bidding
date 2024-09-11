@@ -32,6 +32,7 @@ class BiddingEnv(ABC):
         self.strategy = strategy
 
 
+
     @abstractmethod
     def is_terminal(self) -> bool:
         """
