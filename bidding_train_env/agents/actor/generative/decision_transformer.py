@@ -85,7 +85,7 @@ class DecisionTransformer(Actor):
 
 
         ## Memory
-        self.eval_states = None
+        self.eval_states = torch.zeros((0, state_dim), dtype=torch.float32)
         self.eval_actions = torch.zeros((0, act_dim), dtype=torch.float32)
         self.eval_rewards = torch.zeros(0, dtype=torch.float32)
         self.eval_timesteps = torch.tensor(0, dtype=torch.long).reshape(1, 1)
@@ -120,8 +120,8 @@ class DecisionTransformer(Actor):
         ).permute(0, 2, 1).reshape(batch_size, self.length_times * seq_length).to(stacked_inputs.dtype)
 
         x = stacked_inputs
-        for block in self.transformer:
-            x = block(x, stacked_attention_mask)
+
+        x = self.transformer(x, stacked_attention_mask)
 
         x = x.reshape(batch_size, seq_length, self.length_times, self.hidden_size).permute(0, 2, 1, 3)
 
@@ -150,15 +150,13 @@ class DecisionTransformer(Actor):
         else:
             attention_mask = None
 
-        _, action_preds, return_preds = self.forward(
+        _, action_preds, return_preds = self(
             self.eval_states, self.eval_actions, None, self.eval_rtg, self.eval_timesteps, attention_mask=attention_mask)
         
 
         ## Update reward, actions, returns to go and timesteps:
-        action = action_preds[0,-1]
-        self.eval_actions = torch.cat([self.eval_actions, torch.zeros((1, self.act_dim))], dim=0)
-        self.eval_actions[-1] = action
-
+        action_pred = action_preds[0, -1]
+        self.eval_actions = torch.cat([self.eval_actions, action_pred], dim=0)
     
         reward = obs
         self.eval_rewards = torch.cat([self.eval_rewards, torch.zeros(1)])
@@ -172,4 +170,4 @@ class DecisionTransformer(Actor):
 
 
 
-        return action, torch.tensor(0.), torch.tensor(0.)
+        return action_pred, torch.tensor(0.), torch.tensor(0.)
