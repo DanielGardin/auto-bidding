@@ -160,7 +160,6 @@ class OfflineBiddingEnv(BiddingEnv):
         self.remaining_budget -= cost
         self.strategy.pay(cost)
 
-        reward = conversions.sum()
 
         # Update history
         self.history['historyPValueInfo'].append(np.stack([pValues, pValuesSigmas]).T)
@@ -170,12 +169,17 @@ class OfflineBiddingEnv(BiddingEnv):
         self.history['historyLeastWinningCost'].append(leastWinningCosts)
 
         # Running statistics
-        self.num_conversions += reward
+        self.num_conversions += conversions.sum()
         self.num_wins += winning_bids.sum()
 
         self.current_timestep += 1
 
-        return self.get_obs(), reward, self.is_terminal(), self.get_info()
+        obs = self.get_obs()
+        reward = self.strategy.get_reward(**obs)
+
+
+
+        return obs, reward, self.is_terminal(), self.get_info()
 
 
     # Alternative (deterministic) implementation

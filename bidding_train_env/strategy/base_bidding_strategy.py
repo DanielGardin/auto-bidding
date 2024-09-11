@@ -2,6 +2,7 @@ from numpy.typing import NDArray
 
 from abc import ABC, abstractmethod
 from torch import Tensor
+import numpy as np
 
 from ..agents import Actor
 
@@ -92,6 +93,23 @@ class BaseBiddingStrategy:
         # Default bidding strategy will be removed in the future in favor to abc
         return self.cpa * pValues, Tensor(0.), Tensor(0.)
 
+    
+    def get_reward(
+            self,
+            timeStepIndex          : int,
+            pValues                : NDArray,
+            pValueSigmas           : NDArray,
+            historyPValueInfo      : list[NDArray],
+            historyBid             : list[NDArray],
+            historyAuctionResult   : list[NDArray],
+            historyImpressionResult: list[NDArray],
+            historyLeastWinningCost: list[NDArray],
+    ) -> float:
+        
+        if len(historyImpressionResult) == 0:
+            return 0.
+        else:
+            return np.mean(historyImpressionResult[-1])
 
     def bidding(
             self,
