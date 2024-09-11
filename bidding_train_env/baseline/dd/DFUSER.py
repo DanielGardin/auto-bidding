@@ -511,7 +511,7 @@ class DFUSER(nn.Module):
             transition_dim=dim_obs,
             cond_dim=dim_actions,
             returns_condition=True,
-            dim=128,
+            dim=512,
             condition_dropout=0.25,
             calc_energy=False
         )

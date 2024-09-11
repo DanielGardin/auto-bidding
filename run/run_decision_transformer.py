@@ -33,7 +33,7 @@ def train_model():
                                 state_std=replay_buffer.state_std)
 
 
-    step_num = 30000
+    step_num =50000
     batch_size = 32
     sampler = WeightedRandomSampler(replay_buffer.p_sample, num_samples=step_num * batch_size, replacement=True)
     dataloader = DataLoader(replay_buffer, sampler=sampler, batch_size=batch_size)
