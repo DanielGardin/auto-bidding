@@ -13,7 +13,8 @@ class DecisionTransformer(nn.Module):
 
     def __init__(self, 
                  state_dim: int, 
-                 act_dim: int, 
+                 act_dim: int,
+                 K: int,
                  state_std: float, 
                  action_tanh: bool, 
                  max_ep_len: int,
@@ -35,14 +36,15 @@ class DecisionTransformer(nn.Module):
         super(DecisionTransformer, self).__init__()
 
         ## Params for network architecture
-        self.length_times = self.length_times
-        self.hidden_size = self.hidden_size
+        self.length_times = length_times
+        self.hidden_size = hidden_size
         self.state_std = state_std
         self.max_ep_len = max_ep_len
 
 
         self.state_dim = state_dim
         self.act_dim = act_dim
+        self.max_length = K
 
 
         ## Params for TransformerDecoder
@@ -82,19 +84,13 @@ class DecisionTransformer(nn.Module):
         self.predict_return = torch.nn.Linear(self.hidden_size, 1)
 
 
-
-
-        ## Memory
-        
-
-
         ## Memory
         self.eval_states = None
-        self.eval_actions = torch.zeros((0, self.act_dim), dtype=torch.float32)
+        self.eval_actions = torch.zeros((0, act_dim), dtype=torch.float32)
         self.eval_rewards = torch.zeros(0, dtype=torch.float32)
-        self.eval_target_return = None
         self.eval_timesteps = torch.tensor(0, dtype=torch.long).reshape(1, 1)
-        self.eval_episode_return, self.eval_episode_length = 0, 0
+        self.eval_rtg = torch.tensor(100, dtype=torch.float32).reshape(1, 1)
+        self.eval_timesteps = torch.tensor(0, dtype=torch.long).reshape(1, 1)
 
     def forward(self, states, actions, rewards, returns_to_go, timesteps, attention_mask=None):
 
@@ -132,7 +128,7 @@ class DecisionTransformer(nn.Module):
         return_preds = self.predict_return(x[:, 2])
         state_preds = self.predict_state(x[:, 2])
         action_preds = self.predict_action(x[:, 1])
-        return state_preds, action_preds, return_preds, None
+        return state_preds, action_preds, return_preds
     
     def get_action(
             self,
@@ -140,33 +136,40 @@ class DecisionTransformer(nn.Module):
             action: torch.Tensor | None = None
         ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
-        self.eval()
-        if self.eval_states is None:
-            self.eval_states = torch.from_numpy(state).reshape(1, self.state_dim)
-            ep_return = target_return if target_return is not None else self.target_return
-            self.eval_target_return = torch.tensor(ep_return, dtype=torch.float32).reshape(1, 1)
-        else:
-            assert pre_reward is not None
-            cur_state = torch.from_numpy(state).reshape(1, self.state_dim)
-            self.eval_states = torch.cat([self.eval_states, cur_state], dim=0)
-            self.eval_rewards[-1] = pre_reward
-            pred_return = self.eval_target_return[0, -1] - (pre_reward / self.scale)
-            self.eval_target_return = torch.cat([self.eval_target_return, pred_return.reshape(1, 1)], dim=1)
-            self.eval_timesteps = torch.cat(
-                [self.eval_timesteps, torch.ones((1, 1), dtype=torch.long) * self.eval_timesteps[:, -1] + 1], dim=1)
-        self.eval_actions = torch.cat([self.eval_actions, torch.zeros(1, self.act_dim)], dim=0)
-        self.eval_rewards = torch.cat([self.eval_rewards, torch.zeros(1)])
+        # self.eval()
 
-        action = self.get_action(
-            (self.eval_states.to(dtype=torch.float32) - self.state_mean) / self.state_std,
-            self.eval_actions.to(dtype=torch.float32),
-            self.eval_rewards.to(dtype=torch.float32),
-            self.eval_target_return.to(dtype=torch.float32),
-            self.eval_timesteps.to(dtype=torch.long)
-        )
+
+        ## Update state:
+        self.eval_states = torch.cat([self.eval_states, torch.from_numpy(obs).reshape(1, self.state_dim)], dim = 0)
+
+        if self.max_length is not None:
+            # pad all tokens to sequence length
+            attention_mask = torch.cat([torch.zeros(self.max_length-self.eval_states.shape[1]), torch.ones(self.eval_states.shape[1])])
+            attention_mask = attention_mask.to(dtype=torch.long, device=self.eval_states.device).reshape(1, -1)
+
+        else:
+            attention_mask = None
+
+        _, action_preds, return_preds = self.forward(
+            self.eval_states, self.eval_actions, None, self.eval_rtg, self.eval_timesteps, attention_mask=attention_mask)
+        
+
+        ## Update reward, actions, returns to go and timesteps:
+        action = action_preds[0,-1]
+        self.eval_actions = torch.cat([self.eval_actions, torch.zeros((1, self.act_dim))], dim=0)
         self.eval_actions[-1] = action
-        action = action.detach().cpu().numpy()
-        return action
+
+    
+        reward = self.get_reward()
+        self.eval_rewards = torch.cat([self.eval_rewards, torch.zeros(1)])
+        self.eval_rewards[-1] = reward
+
+        rtg = self.eval_rtg[0, -1] - reward
+        self.eval_rtg = torch.cat([self.eval_rtg, rtg.reshape(1, 1)], dim=1)
+
+
+        self.eval_timesteps = torch.cat([self.eval_timesteps, torch.tensor(1, dtype=torch.long).reshape(1, 1)], dim=1)
+
 
 
         return torch.tensor(0.), torch.tensor(0.), torch.tensor(0.)
