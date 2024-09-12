@@ -145,10 +145,10 @@ def turn_off_grad(model: Module):
         param.requires_grad = False
 
 
-def discounted_returns(rewards: torch.Tensor, gamma=0.99):
+def discounted_returns(rewards: torch.Tensor, gamma: float = 1.):
     n_samples, samples_len = rewards.shape
 
-    gammas = 0.99 ** torch.arange(samples_len, device=rewards.device)
+    gammas = gamma ** torch.arange(samples_len, device=rewards.device)
 
     discounted_rewards = rewards * gammas
 

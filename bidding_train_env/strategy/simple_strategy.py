@@ -23,6 +23,7 @@ class SimpleBiddingStrategy(BasePolicyStrategy):
         ):
         super().__init__(actor, budget, name, cpa, category)
 
+
     def preprocess(
             self,
             timeStepIndex          : int,
@@ -97,7 +98,6 @@ class SimpleBiddingStrategy(BasePolicyStrategy):
         action, log_prob, entropy = super().get_action(obs)
 
         return action.squeeze(-1), log_prob, entropy
-
 
 
     def action_to_bid(

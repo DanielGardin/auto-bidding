@@ -32,6 +32,7 @@ class BaseBiddingStrategy:
         self.cpa = cpa
         self.category = category
 
+
     def __repr__(self) -> str:
         return f"{self.name}(budget={self.budget}, cpa={self.cpa}, category={self.category})"
 
@@ -93,23 +94,6 @@ class BaseBiddingStrategy:
         # Default bidding strategy will be removed in the future in favor to abc
         return self.cpa * pValues, Tensor(0.), Tensor(0.)
 
-    
-    def get_reward(
-            self,
-            timeStepIndex          : int,
-            pValues                : NDArray,
-            pValueSigmas           : NDArray,
-            historyPValueInfo      : list[NDArray],
-            historyBid             : list[NDArray],
-            historyAuctionResult   : list[NDArray],
-            historyImpressionResult: list[NDArray],
-            historyLeastWinningCost: list[NDArray],
-    ) -> float:
-        
-        if len(historyImpressionResult) == 0:
-            return 0.
-        else:
-            return np.mean(historyImpressionResult[-1])
 
     def bidding(
             self,
@@ -151,6 +135,25 @@ class BaseBiddingStrategy:
 
         return bids
 
+    
+    def get_reward(
+            self,
+            timeStepIndex          : int,
+            pValues                : NDArray,
+            pValueSigmas           : NDArray,
+            historyPValueInfo      : list[NDArray],
+            historyBid             : list[NDArray],
+            historyAuctionResult   : list[NDArray],
+            historyImpressionResult: list[NDArray],
+            historyLeastWinningCost: list[NDArray],
+    ) -> float:
+        
+        if len(historyImpressionResult) == 0:
+            return 0.
+
+        else:
+            return np.sum(historyImpressionResult[-1]).astype(float)
+
 
 class BasePolicyStrategy(BaseBiddingStrategy, ABC):
     """
@@ -181,6 +184,14 @@ class BasePolicyStrategy(BaseBiddingStrategy, ABC):
     @property
     def device(self):
         return next(self.agent.parameters()).device
+
+
+    def reset(self):
+        """
+        Reset the remaining budget to its initial state.
+        """
+        super().reset()
+        self.agent.reset()
 
 
     @abstractmethod
@@ -238,6 +249,17 @@ class BasePolicyStrategy(BaseBiddingStrategy, ABC):
             historyLeastWinningCost: list[NDArray],
         ) -> tuple[NDArray, Tensor, Tensor]:
 
+        previous_reward = self.get_reward(
+            timeStepIndex,
+            pValues,
+            pValueSigmas,
+            historyPValueInfo,
+            historyBid,
+            historyAuctionResult,
+            historyImpressionResult,
+            historyLeastWinningCost,
+        )
+
         obs = self.preprocess(
             timeStepIndex,
             pValues,
@@ -248,6 +270,8 @@ class BasePolicyStrategy(BaseBiddingStrategy, ABC):
             historyImpressionResult,
             historyLeastWinningCost,
         ).to(self.device)
+
+        self.agent.callback(previous_reward)
 
         action, log_prob, entropy = self.get_action(obs)
 

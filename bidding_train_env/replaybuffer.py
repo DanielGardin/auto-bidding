@@ -165,11 +165,13 @@ class EpisodeReplayBuffer(AbstractReplayBuffer):
             max_ep_len: int,
             observation_shape: Shape,
             action_shape:      Shape = (),
+            window_size: Optional[int] = None,
             gamma: float = 0.99,
             device: Device = 'cpu',
             return_priority: bool = False
         ):
         self.max_ep_len = max_ep_len
+        self.window_size = window_size
 
         self.capacity = capacity
         self.device   = device
@@ -205,6 +207,18 @@ class EpisodeReplayBuffer(AbstractReplayBuffer):
         self.reward_scale = torch.tensor(1., dtype=torch.float32, device=device)
 
         self.return_priority = return_priority
+
+        if window_size is not None:
+            template = torch.cat([
+                torch.arange(window_size).repeat(window_size, 1),
+                torch.arange(1, max_ep_len - window_size + 1).unsqueeze(-1) + torch.arange(window_size)
+            ])
+
+            mask_template = torch.ones_like(template, dtype=torch.bool)
+
+            self.template      = torch.tril(template, diagonal=0)
+            self.mask_template = torch.triu(mask_template, diagonal=1)
+
 
 
     def __repr__(self) -> str:
@@ -283,7 +297,7 @@ class EpisodeReplayBuffer(AbstractReplayBuffer):
 
 
 
-    def sample(self, batch_size: int, window_size: Optional[int] = None) -> TensorDict:
+    def sample(self, batch_size: int) -> TensorDict:
         if self.return_priority:
             probs = self.returns / self.returns.sum()
 
@@ -295,22 +309,19 @@ class EpisodeReplayBuffer(AbstractReplayBuffer):
 
         sampled_buffer: TensorDict = self.buffer[trajectory_idxs]
 
-        if window_size is None:
+        if self.window_size is None:
             return sampled_buffer
 
         # Sample subtrajectories
         sizes = self.sizes[trajectory_idxs]
 
-        timesteps = torch.floor(sizes * torch.rand(batch_size)).long().unsqueeze(-1) + \
-                    torch.arange(-window_size + 1, 1)
+        end_times = torch.floor(sizes * torch.rand(batch_size)).long()
 
-        subtraj_mask = timesteps < 0
-
-        timesteps = torch.where(subtraj_mask, 0, timesteps).to(self.device)
+        timesteps = self.template[end_times].to(self.device)
 
         sampled_buffer = sampled_buffer.gather(1, timesteps)
 
-        sampled_buffer["mask"] |= subtraj_mask.to(self.device)
+        sampled_buffer["mask"] |= self.mask_template[end_times].to(self.device)
 
         state_mean = self.state_normalization['mean']
         state_std  = self.state_normalization['std']

@@ -174,12 +174,12 @@ class OfflineBiddingEnv(BiddingEnv):
 
         self.current_timestep += 1
 
-        obs = self.get_obs()
+        obs    = self.get_obs()
         reward = self.strategy.get_reward(**obs)
+        done   = self.is_terminal()
+        info   = self.get_info()
 
-
-
-        return obs, reward, self.is_terminal(), self.get_info()
+        return obs, reward, done, info
 
 
     # Alternative (deterministic) implementation

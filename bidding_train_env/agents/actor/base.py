@@ -6,6 +6,12 @@ import torch.nn as nn
 from abc import ABC, abstractmethod
 
 class Actor(nn.Module, ABC):
+    def reset(self):
+        pass
+
+    def callback(self, reward: float):
+        pass
+
     @abstractmethod
     def get_action(self, obs: torch.Tensor, action: Optional[torch.Tensor] = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """

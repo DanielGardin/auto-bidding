@@ -105,6 +105,6 @@ class ContinousStochasticMLP(MLP, Actor):
             sampled_action = action
 
         log_prob = dist.log_prob(sampled_action)
-        entropy = dist.entropy()
+        entropy  = dist.entropy()
 
         return sampled_action, log_prob, entropy
