@@ -65,7 +65,7 @@ class RLAlgorithm(nn.Module, ABC):
             config: Optional[dict] = None
         ):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-        experiment_name = f"{experiment_name}_{timestamp}"
+        self.experiment_name = f"{experiment_name}_{timestamp}"
 
         log_dir = Path(log_dir)
 
@@ -73,7 +73,6 @@ class RLAlgorithm(nn.Module, ABC):
 
         if checkpoint_interval is not None:
             self.checkpoint_dir = get_root_path() / f"checkpoints/{experiment_name}"
-            self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         if use_wandb:
             self.run = wandb.init(
@@ -84,7 +83,8 @@ class RLAlgorithm(nn.Module, ABC):
                 sync_tensorboard = True
             )
 
-        self.writer = SummaryWriter(log_dir)
+        self.writer = SummaryWriter(log_dir / 'tensorboard')
+        self.config = config
 
         self.global_step = 0
 
@@ -99,8 +99,10 @@ class RLAlgorithm(nn.Module, ABC):
             lr_scheduler: Optional[LRScheduler] = None,
             val_periods: Optional[list[int]] = None,
         ):
-        if not hasattr(self, "writer"):
-            logger.info("Calling learn before begin_experiment, no logging will be done")
+
+        running_experiment = hasattr(self, "writer")
+        if not running_experiment:
+            logger.info("Calling learn before begin_experiment, no logging will be done and no weights will be saved.")
 
             self.checkpoint_interval = None
             self.writer              = DummyWriter()
@@ -161,11 +163,36 @@ class RLAlgorithm(nn.Module, ABC):
                 self.writer.add_scalar(f"eval/{key}", mean_value, self.global_step)
 
             if self.checkpoint_interval is not None and epoch % self.checkpoint_interval == 0:
+                self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
                 torch.save(self.state_dict(), self.checkpoint_dir / f'checkpoint_{epoch}.pth')
                 torch.save(self.actor.state_dict(), self.checkpoint_dir / f'actor_checkpoint_{epoch}.pth')
 
             if lr_scheduler is not None:
                 lr_scheduler.step()
+
+
+        if hasattr(self, "run"):
+            self.run.finish()
+
+        self.writer.close()
+
+        if running_experiment:
+            save_dir = get_root_path() / "saved_models" / self.experiment_name
+            save_dir.mkdir(parents=True, exist_ok=True)
+
+            torch.save(self.state_dict(), save_dir / 'algorithm_final.pth')
+            torch.save(self.actor.state_dict(), save_dir / 'actor_final.pth')
+
+            if hasattr(self, "config") and self.config is not None:
+                import yaml
+
+                self.config["saved_models"] = {
+                    'full'  : str((save_dir / 'algorithm_final.pth').relative_to(get_root_path())),
+                    'actor' : str((save_dir / 'actor_final.pth').relative_to(get_root_path())),
+                }
+
+                with open(save_dir / 'config.yaml', 'w') as f:
+                    yaml.dump(self.config, f)
 
 
     def evaluate(
@@ -189,5 +216,7 @@ class RLAlgorithm(nn.Module, ABC):
                 cum_reward += reward
 
         info[f"total_reward"] = cum_reward
+
+        env.strategy.reset()
 
         return info

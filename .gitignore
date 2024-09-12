@@ -8,3 +8,4 @@
 wandb/
 logs/
 checkpoints/
+saved_models/

@@ -67,7 +67,7 @@ class Transformer(Actor):
         self.register_buffer("eval_states", torch.empty((0, state_dim), dtype=torch.float32))
         self.register_buffer("eval_actions", torch.empty((0, act_dim), dtype=torch.float32))
         self.register_buffer("eval_rtg", torch.empty((0, 1), dtype=torch.float32))
-        self.register_buffer("eval_timesteps", torch.empty((0, 1), dtype=torch.long))
+        self.register_buffer("eval_timesteps", torch.zeros((1), dtype=torch.long))
 
         self.embed_timestep = nn.Embedding(self.max_ep_len, self.hidden_size)
         self.embed_return = torch.nn.Linear(1, self.hidden_size)
@@ -131,26 +131,24 @@ class Transformer(Actor):
 
 
     def reset(self):
-        self.eval_states    = torch.empty((1, 0, self.state_dim), dtype=torch.float32, device=self.eval_states.device)
-        self.eval_actions   = torch.empty((1, 0, self.act_dim), dtype=torch.float32, device=self.eval_states.device)
-        self.eval_rtg       = torch.empty((1, 0, 1), dtype=torch.float32, device=self.eval_states.device)
-        self.eval_timesteps = torch.empty((1, 1), dtype=torch.long, device=self.eval_timesteps.device)
-
-        self.eval_timesteps[0, 0] = 0
+        self.eval_states    = torch.empty((0, self.state_dim), dtype=torch.float32, device=self.eval_states.device)
+        self.eval_actions   = torch.empty((0, self.act_dim), dtype=torch.float32, device=self.eval_states.device)
+        self.eval_rtg       = torch.empty((0, 1), dtype=torch.float32, device=self.eval_states.device)
+        self.eval_timesteps = torch.zeros(1, dtype=torch.long, device=self.eval_timesteps.device)
 
 
     def callback(self, reward: float):
-        if self.eval_rtg.size(1) == 0:
+        if self.eval_rtg.size(0) == 0:
             rtg = self.target_return - reward
 
         else:
-            rtg = self.eval_rtg[0, -1, 0].item() - reward
+            rtg = self.eval_rtg[-1].item() - reward
 
 
-        tensor_rtg = torch.zeros((1, 1, 1), dtype=torch.float32, device=self.eval_rtg.device)
-        tensor_rtg[0, 0, 0] = rtg
+        tensor_rtg = torch.zeros((1, 1), dtype=torch.float32, device=self.eval_rtg.device)
+        tensor_rtg[0] = rtg
 
-        self.eval_rtg = torch.cat([self.eval_rtg, tensor_rtg], dim=1)
+        self.eval_rtg = torch.cat([self.eval_rtg, tensor_rtg])
 
 
     def get_action(
@@ -161,22 +159,29 @@ class Transformer(Actor):
         if obs.dim() == 3:
             raise ValueError("This actor only supports single inference")
 
-        self.eval_states = torch.cat([self.eval_states, obs.unsqueeze(0)], dim = 1)
+        self.eval_states = torch.cat([self.eval_states, obs])
 
         self.eval_actions = torch.cat([
             self.eval_actions,
-            torch.zeros((1, 1, self.act_dim), dtype=torch.float32, device=self.eval_states.device)
-        ], dim=1)
+            torch.zeros((1, self.act_dim), dtype=torch.float32, device=self.eval_states.device)
+        ])
+
+        if self.max_length and self.eval_states.size(0) > self.max_length:
+            self.eval_states    = self.eval_states[-self.max_length:]
+            self.eval_actions   = self.eval_actions[-self.max_length:]
+            self.eval_rtg       = self.eval_rtg[-self.max_length:]
+            self.eval_timesteps = self.eval_timesteps[-self.max_length:]
 
         _, action_preds, _ = self(
-            self.eval_states,
-            self.eval_actions,
-            self.eval_rtg,
-            self.eval_timesteps
+            self.eval_states.unsqueeze(0),
+            self.eval_actions.unsqueeze(0),
+            self.eval_rtg.unsqueeze(0),
+            self.eval_timesteps.unsqueeze(0)
         )
 
-        self.eval_actions[0, -1] = action_preds[0, -1].squeeze(0)
+        last_action = self.eval_actions.view(-1, self.act_dim)[-1]
+        self.eval_actions[-1] = last_action
 
-        self.eval_timesteps = torch.cat([self.eval_timesteps, torch.tensor([len(self.eval_timesteps)], device=self.eval_timesteps.device).unsqueeze(-1)], dim=1)
+        self.eval_timesteps = torch.cat([self.eval_timesteps, torch.tensor([len(self.eval_timesteps)], device=self.eval_timesteps.device)])
 
-        return action_preds[0, -1], torch.tensor(0.), torch.tensor(0.)
+        return last_action, torch.tensor(0.), torch.tensor(0.)
