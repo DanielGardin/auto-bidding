@@ -4,10 +4,10 @@ from pathlib import Path
 
 import torch
 
-# from .base_bidding_strategy import BaseBiddingStrategy as BaseBiddingStrategy
-# from .onlinelp_bidding_strategy import OnlineLpBiddingStrategy as OnlineLpBiddingStrategy
-# from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
-from .player_bidding_strategy import PlayerBiddingStrategy as PlayerBiddingStrategy
+from .base_bidding_strategy import BaseBiddingStrategy as BaseBiddingStrategy
+from .onlinelp_bidding_strategy import OnlineLpBiddingStrategy as OnlineLpBiddingStrategy
+from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
+# from .player_bidding_strategy import PlayerBiddingStrategy as PlayerBiddingStrategy
 
 # from ..utils import get_root_path
 # from ..agents.actor import ContinuousDeterminisitcMLP, ContinousStochasticMLP
