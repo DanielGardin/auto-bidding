@@ -9,7 +9,8 @@ from omegaconf import OmegaConf, MISSING
 from torch import load
 
 from bidding_train_env.utils import get_root_path, turn_off_grad
-from bidding_train_env.import_utils import get_actor
+# from bidding_train_env.import_utils import get_actor
+from ..agents import actor
 class PlayerBiddingStrategy(SimpleBiddingStrategy):
     """
     Simple Strategy example for bidding.
@@ -32,19 +33,21 @@ class PlayerBiddingStrategy(SimpleBiddingStrategy):
         config_path = get_root_path() / 'saved_models' / 'dt' / 'config.yaml'
         config = OmegaConf.load(config_path)
 
-        actor = get_actor(config.model.actor, **config.model.actor_params)
-        actor = actor.to(config.general.device)
+        agent =  getattr(actor,config.model.actor)(**config.model.actor_params)
+
+        # actor = get_actor(config.model.actor, **config.model.actor_params)
+        agent = agent.to(config.general.device)
 
         model_path = f"{get_root_path()}/{config.saved_models.actor}"
 
         print(model_path)
 
         state_dict = load(model_path, map_location=config.general.device)
-        actor.load_state_dict(state_dict)
+        agent.load_state_dict(state_dict)
 
-        turn_off_grad(actor)
+        turn_off_grad(agent)
 
-        self.agent = actor
+        self.agent = agent
        
         
 
