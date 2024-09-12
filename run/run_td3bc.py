@@ -161,7 +161,7 @@ default_config = {
         "actor_update_freq": 2
     },
     "logging" : {
-        "log_dir"            : "logs/iql",
+        "log_dir"            : "logs/td3bc",
         "checkpoint_interval": 1000,
         "use_wandb"          : True,
     }

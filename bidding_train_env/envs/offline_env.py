@@ -47,6 +47,8 @@ class OfflineBiddingEnv(BiddingEnv):
 
         super().__init__(strategy, period)
 
+    def __repr__(self):
+        return f"OfflineBiddingEnv"
 
     @property
     def budget(self):

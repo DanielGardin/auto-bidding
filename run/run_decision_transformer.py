@@ -9,8 +9,8 @@ import torch
 from dataclasses import dataclass, field
 from omegaconf import OmegaConf, MISSING
 
-from bidding_train_env.utils import get_root_path, set_seed, get_optimizer,config_to_dict
-from bidding_train_env.import_utils import get_actor, get_critic, get_strategy, get_env
+from bidding_train_env.utils import get_root_path, set_seed, get_optimizer, config_to_dict
+from bidding_train_env.import_utils import get_actor, get_strategy, get_env
 from bidding_train_env.algorithms import DecisionTransformer
 from bidding_train_env.replaybuffer import EpisodeReplayBuffer
 
@@ -147,7 +147,6 @@ default_config = {
         "use_wandb"          : True,
     }
 }
-
 
 if __name__ == '__main__':
     import argparse

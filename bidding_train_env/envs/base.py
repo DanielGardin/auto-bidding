@@ -9,10 +9,11 @@ class BiddingEnv(ABC):
     def __init__(
             self,
             strategy: BaseBiddingStrategy,
-            period: int,
+            period: int
         ):
         # Agent internal state
         self.remaining_budget = strategy.budget
+
         self.history = {
             'historyPValueInfo'       : [],
             'historyBid'              : [],
@@ -27,11 +28,11 @@ class BiddingEnv(ABC):
     def set_period(self, period: int):
         self.current_period = period
 
-
     def set_strategy(self, strategy: BaseBiddingStrategy):
         self.strategy = strategy
 
-
+    def __repr__(self):
+        return f"BiddingEnv"
 
     @abstractmethod
     def is_terminal(self) -> bool:
