@@ -24,6 +24,8 @@ import wandb
 from abc import ABC, abstractmethod
 
 import logging
+# import os
+# os.environ['WANDB_DIR'] = os.getcwd()
 
 
 logging.basicConfig(level=logging.INFO,
@@ -73,7 +75,9 @@ class RLAlgorithm(nn.Module, ABC):
 
         if checkpoint_interval is not None:
             self.checkpoint_dir = get_root_path() / f"checkpoints/{experiment_name}"
+        
 
+        #log_dir.mkdir(parents=True, exist_ok=True)
         if use_wandb:
             self.run = wandb.init(
                 project          = project_name,

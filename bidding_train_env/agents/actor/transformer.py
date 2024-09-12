@@ -166,6 +166,7 @@ class Transformer(Actor):
             torch.zeros((1, self.act_dim), dtype=torch.float32, device=self.eval_states.device)
         ])
 
+
         if self.max_length and self.eval_states.size(0) > self.max_length:
             self.eval_states    = self.eval_states[-self.max_length:]
             self.eval_actions   = self.eval_actions[-self.max_length:]
@@ -179,7 +180,8 @@ class Transformer(Actor):
             self.eval_timesteps.unsqueeze(0)
         )
 
-        last_action = self.eval_actions.view(-1, self.act_dim)[-1]
+
+        last_action = action_preds.view(-1, self.act_dim)[-1]
         self.eval_actions[-1] = last_action
 
         self.eval_timesteps = torch.cat([self.eval_timesteps, torch.tensor([len(self.eval_timesteps)], device=self.eval_timesteps.device)])

@@ -32,7 +32,7 @@ def run_test():
     offline evaluation
     """
 
-    data_loader = TestDataLoader(file_path='./data/traffic/period-7.csv')
+    data_loader = TestDataLoader(file_path='./data/traffic/period-11.csv')
     env = OfflineEnv()
     agent = PlayerBiddingStrategy()
     print(agent.name)
@@ -103,8 +103,6 @@ def run_test():
     logger.info(f'CPA-real: {cpa_real}')
     logger.info(f'CPA-constraint: {cpa_constraint}')
     logger.info(f'Score: {score}')
-
-    print(history)
 
 
 if __name__ == '__main__':
