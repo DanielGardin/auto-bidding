@@ -11,12 +11,12 @@ class BehaviorCloning(RLAlgorithm):
     def __init__(
             self,
             actor: Actor,
-            optimizer: Optimizer,
+            actor_optimizer: Optimizer,
         ):
         super().__init__()
 
         self.actor = actor
-        self.optimizer = optimizer
+        self.actor_optimizer = actor_optimizer
 
 
     def train_step(self, batch: TensorDict):
@@ -27,10 +27,17 @@ class BehaviorCloning(RLAlgorithm):
 
         loss = mse_loss(action, target_action)
 
-        self.optimizer.zero_grad()
+        self.actor_optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
+        self.actor_optimizer.step()
 
         return {
-            "loss/action" : loss.item()
+            "loss/actor" : loss.item()
+        }
+
+
+    def save(self):
+        return {
+            'actor': self.actor.state_dict(),
+            'algorithm': self.state_dict()
         }

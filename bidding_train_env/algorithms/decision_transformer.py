@@ -47,3 +47,10 @@ class DecisionTransformer(RLAlgorithm):
         return {
             "loss/action" : loss.item()
         }
+
+
+    def save(self):
+        return {
+            'actor': self.actor.state_dict(),
+            'algorithm': self.state_dict()
+        }

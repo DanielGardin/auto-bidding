@@ -164,8 +164,9 @@ class RLAlgorithm(nn.Module, ABC):
 
             if self.checkpoint_interval is not None and epoch % self.checkpoint_interval == 0:
                 self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
-                torch.save(self.state_dict(), self.checkpoint_dir / f'checkpoint_{epoch}.pth')
-                torch.save(self.actor.state_dict(), self.checkpoint_dir / f'actor_checkpoint_{epoch}.pth')
+
+                for net_name, state_dict in self.save().items():
+                    torch.save(state_dict, self.checkpoint_dir / f"{net_name}_checkpoint_{epoch}.pth")
 
             if lr_scheduler is not None:
                 lr_scheduler.step()
@@ -180,19 +181,24 @@ class RLAlgorithm(nn.Module, ABC):
             save_dir = get_root_path() / "saved_models" / self.experiment_name
             save_dir.mkdir(parents=True, exist_ok=True)
 
-            torch.save(self.state_dict(), save_dir / 'algorithm_final.pth')
-            torch.save(self.actor.state_dict(), save_dir / 'actor_final.pth')
+            save_dict = self.save()
+
+            for net_name, state_dict in save_dict.items():
+                torch.save(state_dict, save_dir / f"{net_name}.pth")
 
             if hasattr(self, "config") and self.config is not None:
                 import yaml
 
                 self.config["saved_models"] = {
-                    'full'  : str((save_dir / 'algorithm_final.pth').relative_to(get_root_path())),
-                    'actor' : str((save_dir / 'actor_final.pth').relative_to(get_root_path())),
+                    net_name : str((save_dir / f"{net_name}.pth").relative_to(get_root_path())) for net_name in save_dict
                 }
 
                 with open(save_dir / 'config.yaml', 'w') as f:
                     yaml.dump(self.config, f)
+
+
+    def save(self) -> dict[str, Any]:
+        return {}
 
 
     def evaluate(

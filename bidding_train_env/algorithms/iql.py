@@ -135,3 +135,11 @@ class IQL(RLAlgorithm):
             "loss/value" : value_loss.item(),
             "loss/critic" : critic_loss.item()
         }
+    
+    def save(self):
+        return {
+            'actor': self.actor.state_dict(),
+            'critic_ensemble': [critic.state_dict() for critic in self.critic_ensemble],
+            'value_net': self.value_net.state_dict(),
+            'algorithm': self.state_dict()
+        }
