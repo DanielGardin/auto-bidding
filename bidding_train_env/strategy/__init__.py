@@ -7,6 +7,7 @@ import torch
 from .base_bidding_strategy import BaseBiddingStrategy as BaseBiddingStrategy
 from .onlinelp_bidding_strategy import OnlineLpBiddingStrategy as OnlineLpBiddingStrategy
 from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
+from .player_bidding_strategy import PlayerBiddingStrategy as PlayerBiddingStrategy
 
 from ..utils import get_root_path
 from ..agents.actor import ContinuousDeterminisitcMLP, ContinousStochasticMLP
@@ -25,16 +26,16 @@ actor_params       = {
     'activation': 'relu'
 }
 
-class PlayerBiddingStrategy(SimpleBiddingStrategy):
-    def __init__(
-            self,
-            budget=100,
-            name="SimpleStrategy",
-            cpa=2,
-            category=1,
-        ):
+# class PlayerBiddingStrategy(SimpleBiddingStrategy):
+#     def __init__(
+#             self,
+#             budget=100,
+#             name="SimpleStrategy",
+#             cpa=2,
+#             category=1,
+#         ):
 
-        actor = ContinousStochasticMLP(**actor_params)
-        actor.load_state_dict(torch.load(parameters_path, map_location='cpu'))
+#         actor = ContinousStochasticMLP(**actor_params)
+#         actor.load_state_dict(torch.load(parameters_path, map_location='cpu'))
 
-        super().__init__(actor, budget, name, cpa, category)
+#         super().__init__(actor, budget, name, cpa, category)
