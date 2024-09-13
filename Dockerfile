@@ -21,6 +21,7 @@ RUN wget -qO- https://bootstrap.pypa.io/get-pip.py | python
 
 # Install requirements
 RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install -e .
 
 # Run the evaluation script
 CMD ["python3", "./run/run_evaluate.py"]
