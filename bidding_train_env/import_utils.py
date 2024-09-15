@@ -1,7 +1,6 @@
 from typing import Optional
 
 from .agents import actor, critic, value
-from . import algorithms
 from . import envs
 from . import strategy
 

@@ -125,7 +125,7 @@ default_config = {
         "action_shape" : (),
     },
     "model" : {
-        "actor"  : "ContinousStochasticMLP",
+        "actor"  : "NormalStochasticMLP",
         "actor_params" : {
             "input_dim" : 16,
             "hidden_dims" : [256, 256],

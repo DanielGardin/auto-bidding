@@ -32,7 +32,8 @@ class ContinuousDeterminisitcMLP(MLP, Actor):
     def get_action(
             self,
             obs: torch.Tensor,
-            action: torch.Tensor | None = None
+            action: torch.Tensor | None = None,
+            deterministic: bool = False
         ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
         if action is None:
@@ -42,7 +43,9 @@ class ContinuousDeterminisitcMLP(MLP, Actor):
         return action, torch.tensor(0.), torch.tensor(0.)
 
 
-class ContinousStochasticMLP(MLP, Actor):
+class NormalStochasticMLP(MLP, Actor):
+    stochastic = True
+
     def __init__(
             self,
             input_dim: int,
@@ -76,7 +79,8 @@ class ContinousStochasticMLP(MLP, Actor):
     def get_action(
             self,
             obs: torch.Tensor,
-            action: torch.Tensor | None = None
+            action: torch.Tensor | None = None,
+            deterministic: bool = False
         ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
         n_samples = obs.size(0)
@@ -96,7 +100,7 @@ class ContinousStochasticMLP(MLP, Actor):
         dist = torch.distributions.Normal(mean, std)
 
         if action is None:
-            sampled_action: torch.Tensor = dist.rsample()
+            sampled_action = self.action_from_dist(dist, deterministic)
 
             if self.mean_radius is not None:
                 sampled_action = self.mean_radius * torch.tanh(sampled_action)

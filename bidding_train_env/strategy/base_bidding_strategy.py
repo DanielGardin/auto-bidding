@@ -165,7 +165,7 @@ class BasePolicyStrategy(BaseBiddingStrategy, ABC):
             agent: Actor,
             budget: float = 100.,
             name: str     = "BasePolicyStrategy",
-            cpa: float    = 2,
+            cpa: float    = 2.,
             category: int = 1
         ):
         """

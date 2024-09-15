@@ -16,10 +16,10 @@ class SimpleBiddingStrategy(BasePolicyStrategy):
     def __init__(
             self,
             actor: Actor,
-            budget=100,
-            name="SimpleStrategy",
-            cpa=2,
-            category=1,
+            budget: float = 100.,
+            name: str     = "SimpleStrategy",
+            cpa: float    = 2.,
+            category:int  = 1,
         ):
         super().__init__(actor, budget, name, cpa, category)
 
@@ -97,7 +97,7 @@ class SimpleBiddingStrategy(BasePolicyStrategy):
     def get_action(self, obs):
         action, log_prob, entropy = super().get_action(obs)
 
-        return action.squeeze(-1), log_prob, entropy
+        return action.squeeze(-1).clamp(0), log_prob, entropy
 
 
     def action_to_bid(

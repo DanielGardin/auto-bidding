@@ -1,3 +1,4 @@
+from torch import Tensor
 from torch.nn.functional import mse_loss
 from torch.optim import Optimizer
 
@@ -18,14 +19,24 @@ class BehaviorCloning(RLAlgorithm):
         self.actor = actor
         self.actor_optimizer = actor_optimizer
 
+        if self.actor.is_stochastic():
+            def loss_fn(action: Tensor, log_prob: Tensor, target_action: Tensor):
+                return - log_prob.mean()
+
+        else:
+            def loss_fn(action: Tensor, log_prob: Tensor, target_action: Tensor):
+                return mse_loss(action, target_action)
+
+        self.loss_fn = loss_fn
+
 
     def train_step(self, batch: TensorDict):
-        action, _, _ = self.actor.get_action(batch['state'])
+        action, log_prob, _ = self.actor.get_action(batch['state'])
 
         target_action = batch['action']
         action        = action.view(target_action.size())
 
-        loss = mse_loss(action, target_action)
+        loss = self.loss_fn(action, log_prob, target_action)
 
         self.actor_optimizer.zero_grad()
         loss.backward()

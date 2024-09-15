@@ -10,7 +10,7 @@ from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
 # from .player_bidding_strategy import PlayerBiddingStrategy as PlayerBiddingStrategy
 
 from ..utils import get_root_path
-from ..agents.actor import ContinuousDeterminisitcMLP, ContinousStochasticMLP
+from ..agents.actor import ContinuousDeterminisitcMLP, NormalStochasticMLP
 
 # Deploying strategy under PlayerBiddingStrategy
 

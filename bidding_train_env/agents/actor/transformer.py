@@ -154,7 +154,8 @@ class Transformer(Actor):
     def get_action(
             self,
             obs: torch.Tensor,
-            action: torch.Tensor | None = None
+            action: torch.Tensor | None = None,
+            deterministic: bool = False
         ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if obs.dim() == 3:
             raise ValueError("This actor only supports single inference")
