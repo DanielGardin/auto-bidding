@@ -27,7 +27,7 @@ def run_test():
     """
     offline evaluation
     """
-    periods = random.sample(range(7, 14), 5)
+    periods = [7 , 8, 9]
     results = []
 
     for p in periods:
