@@ -2,6 +2,8 @@ import numpy as np
 from bidding_train_env.baseline.dt.utils import EpisodeReplayBuffer
 from bidding_train_env.baseline.dt.dt import DecisionTransformer
 from torch.utils.data import DataLoader, WeightedRandomSampler
+from bidding_train_env.common.utils import normalize_state, normalize_reward, save_normalize_dict
+
 import logging
 import copy
 import torch
@@ -24,15 +26,15 @@ def train_model():
     state_dim = 16
 
     replay_buffer = EpisodeReplayBuffer(16, 1)
-    # save_normalize_dict({"state_mean": replay_buffer.state_mean, "state_std": replay_buffer.state_std},
-    #                     "saved_model/DTtest")
+    save_normalize_dict({"state_mean": replay_buffer.state_mean, "state_std": replay_buffer.state_std},
+                        "saved_model/DTtest")
     logger.info(f"Replay buffer size: {len(replay_buffer.trajectories)}")
 
     model = DecisionTransformer(state_dim=state_dim, act_dim=1, state_mean=replay_buffer.state_mean,
                                 state_std=replay_buffer.state_std)
 
 
-    step_num =100
+    step_num =10000
     batch_size = 32
     sampler = WeightedRandomSampler(replay_buffer.p_sample, num_samples=step_num * batch_size, replacement=True)
     dataloader = DataLoader(replay_buffer, sampler=sampler, batch_size=batch_size)
