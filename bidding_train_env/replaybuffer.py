@@ -8,6 +8,7 @@ from warnings import warn
 import torch
 
 from tensordict import TensorDict
+from pandas import DataFrame
 
 from .utils import discounted_returns
 
@@ -70,7 +71,35 @@ class ReplayBuffer(AbstractReplayBuffer):
 
         self.reward_scale = torch.tensor(1., dtype=torch.float32, device=device)
 
-    
+
+    @classmethod
+    def from_data(
+            cls,
+            data: DataFrame,
+            reward: Optional[str] = None,
+            device: Device = 'cpu'
+        ):
+
+        capacity = len(data)
+
+        observation_shape = data['state'].iloc[0].shape
+        action_shape      = data['action'].iloc[0].shape
+
+        self = cls(capacity, observation_shape, action_shape, device)
+
+        reward_data = data['reward'] if reward is None else data['reward', reward]
+
+        self.push(
+            torch.tensor(data['state'].to_numpy(), dtype=torch.float32),
+            torch.tensor(data['action'].to_numpy(), dtype=torch.float32),
+            torch.tensor(reward_data.to_numpy(), dtype=torch.float32),
+            torch.tensor(data['next_state'].to_numpy(), dtype=torch.float32),
+            torch.tensor(data['done'].to_numpy(), dtype=torch.bool)
+        )
+
+        return self
+
+
     def to(self, device: Device):
         self.device = device
 

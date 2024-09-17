@@ -1,5 +1,4 @@
 from torch import Tensor
-from torch.nn.functional import mse_loss
 from torch.optim import Optimizer
 
 from tensordict import TensorDict
@@ -25,7 +24,7 @@ class BehaviorCloning(RLAlgorithm):
 
         else:
             def loss_fn(action: Tensor, log_prob: Tensor, target_action: Tensor):
-                return mse_loss(action, target_action)
+                return (action - target_action).pow(2).mean()
 
         self.loss_fn = loss_fn
 

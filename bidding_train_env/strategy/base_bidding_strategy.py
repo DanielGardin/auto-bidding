@@ -1,7 +1,8 @@
+from typing import Sequence, Optional
 from numpy.typing import NDArray
 
 from abc import ABC, abstractmethod
-from torch import Tensor, as_tensor
+from torch import Tensor, from_numpy, tensor
 import numpy as np
 
 from ..agents import Actor
@@ -10,6 +11,9 @@ class BaseBiddingStrategy:
     """
     Base bidding strategy interface defining methods to be implemented.
     """
+    observation_shape: Optional[Sequence[int]] = None
+    action_shape: Optional[Sequence[int]]      = None
+
 
     def __init__(
             self,
@@ -76,7 +80,7 @@ class BaseBiddingStrategy:
             historyImpressionResult: list[NDArray],
             historyLeastWinningCost: list[NDArray],
             action: Tensor
-        ) -> NDArray:
+        ) -> Tensor:
         ...
 
 
@@ -90,9 +94,9 @@ class BaseBiddingStrategy:
             historyAuctionResult   : list[NDArray],
             historyImpressionResult: list[NDArray],
             historyLeastWinningCost: list[NDArray],
-        ) -> tuple[NDArray, Tensor, Tensor]:
+        ) -> tuple[Tensor, Tensor, Tensor]:
         # Default bidding strategy will be removed in the future in favor to abc
-        return self.cpa * pValues, as_tensor(0.), as_tensor(0.)
+        return self.cpa * from_numpy(pValues), tensor(0.), tensor(0.)
 
 
     def bidding(
@@ -133,7 +137,7 @@ class BaseBiddingStrategy:
             historyLeastWinningCost,
         )
 
-        return bids
+        return bids.cpu().detach().numpy()
 
     
     def get_reward(
@@ -229,7 +233,7 @@ class BasePolicyStrategy(BaseBiddingStrategy, ABC):
             historyImpressionResult: list[NDArray],
             historyLeastWinningCost: list[NDArray],
             action: Tensor
-        ) -> NDArray:
+        ) -> Tensor:
         """
         Given the observation and an action sampled from the agent, convert the action to bids.
         """
@@ -247,7 +251,7 @@ class BasePolicyStrategy(BaseBiddingStrategy, ABC):
             historyAuctionResult   : list[NDArray],
             historyImpressionResult: list[NDArray],
             historyLeastWinningCost: list[NDArray],
-        ) -> tuple[NDArray, Tensor, Tensor]:
+        ) -> tuple[Tensor, Tensor, Tensor]:
 
         previous_reward = self.get_reward(
             timeStepIndex,

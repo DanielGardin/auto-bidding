@@ -6,7 +6,7 @@ import torch.nn as nn
 from .base import Actor
 from ..mlp import MLP
 
-class ContinuousDeterminisitcMLP(MLP, Actor):
+class DeterministicMLP(MLP, Actor):
     def __init__(
             self,
             input_dim: int,

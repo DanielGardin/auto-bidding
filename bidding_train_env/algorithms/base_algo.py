@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Mapping
 
 from pathlib import Path
 
@@ -42,6 +42,31 @@ class DummyWriter(SummaryWriter):
         return lambda *args, **kwargs: None
 
 
+class EpochLogs:
+    def __init__(self):
+        self.logs: dict[str, list] = {}
+
+    def log(self, log_info: Mapping[str, Any]):
+        for key, value in log_info.items():
+            if key not in self.logs:
+                self.logs[key] = []
+
+            self.logs[key].append(value)
+
+    def mean_log(self) -> dict[str, Any]:
+        return {
+            key: np.nanmean(values) for key, values in self.logs.items()
+        }
+
+    def std_log(self) -> dict[str, Any]:
+        return {
+            key: np.nanstd(values) for key, values in self.logs.items()
+        }
+
+    def clear(self):
+        self.logs.clear()
+
+
 class RLAlgorithm(nn.Module, ABC):
     @abstractmethod
     def train_step(self, batch: TensorDict) -> dict[str, Any]:
@@ -49,7 +74,7 @@ class RLAlgorithm(nn.Module, ABC):
 
     
     # These methods are for future use
-    def on_epoch_start(self, replay_buffer: AbstractReplayBuffer) -> dict[str, Any]:
+    def on_epoch_start(self, env: BiddingEnv, replay_buffer: AbstractReplayBuffer) -> dict[str, Any]:
         return {}
 
 
@@ -93,17 +118,21 @@ class RLAlgorithm(nn.Module, ABC):
         self.global_step = 0
 
 
+    def _write_logs(self, tag: str, logs: dict[str, Any]):
+        for key, value in logs.items():
+            self.writer.add_scalar(f"{tag}/{key}", value, self.global_step)
+
+
     def learn(
             self,
             num_epochs: int,
             steps_per_epoch: int,
             replay_buffer: AbstractReplayBuffer,
             batch_size: int,
-            eval_env: BiddingEnv,
+            env: BiddingEnv,
             lr_scheduler: Optional[LRScheduler] = None,
             val_periods: Optional[list[int]] = None,
         ):
-
         running_experiment = hasattr(self, "writer")
         if not running_experiment:
             logger.info("Calling learn before begin_experiment, no logging will be done and no weights will be saved.")
@@ -113,58 +142,49 @@ class RLAlgorithm(nn.Module, ABC):
 
             self.global_step = 0
 
-
         if val_periods is None:
             val_periods = []
 
-        def write_info(tag: str, info: dict[str, Any]):
-            for key, value in info.items():
-                self.writer.add_scalar(f"{tag}/{key}", value, self.global_step)
-
-        epoch_info = defaultdict(list)
-        eval_total = defaultdict(list)
-        for epoch in range(1, num_epochs + 1):
+        epoch_logs = EpochLogs()
+        eval_logs  = EpochLogs()
+        for epoch in range(1, num_epochs+1):
             self.train()
 
-            pbar = tqdm.tqdm(
-                range(steps_per_epoch),
-                desc=f"Epoch {epoch}/{num_epochs}"
-            )
+            with tqdm.tqdm(total=steps_per_epoch, unit=" steps", ncols=100) as pbar:
 
-            start_info = self.on_epoch_start(replay_buffer)
-            write_info("train", start_info)
+                pbar.set_description(f"Epoch {epoch}/{num_epochs}")
 
-            epoch_info.clear()
-            for step in pbar:
-                batch = replay_buffer.sample(batch_size)
+                start_logs = self.on_epoch_start(env, replay_buffer)
+                self._write_logs("train", start_logs)
 
-                train_info = self.train_step(batch)
+                epoch_logs.clear()
+                for step in range(steps_per_epoch):
+                    batch = replay_buffer.sample(batch_size)
+                    train_logs = self.train_step(batch)
 
-                pbar.set_postfix(train_info)
+                    epoch_logs.log(train_logs)
+                    pbar.set_postfix(train_logs)
+                    pbar.update()
 
-                for key, value in train_info.items():
-                    epoch_info[key].append(value)
+                    self.global_step += 1
+                
+                epoch_summary = epoch_logs.mean_log()
+                pbar.set_postfix(epoch_summary)
+                self._write_logs("train", epoch_summary)
+                
+                end_logs = self.on_epoch_end()
+                self._write_logs("train", end_logs)
 
-                self.global_step += 1
+                pbar.close()
 
-            for key, value in epoch_info.items():
-                mean_value = np.nanmean(value)
-                self.writer.add_scalar(f"train/{key}", mean_value, self.global_step)
-
-            end_info = self.on_epoch_end()
-            write_info("train", end_info)
-
-            eval_total.clear()
+            eval_logs.clear()
             for period in val_periods:
-                eval_info = self.evaluate(eval_env, period)
-                write_info(f"eval/period-{period}", eval_info)
+                eval_log = self.evaluate(env, period)
 
-                for key, value in eval_info.items():
-                    eval_total[key].append(value)
+                eval_logs.log(eval_log)
 
-            for key, value in eval_total.items():
-                mean_value = np.nanmean(value)
-                self.writer.add_scalar(f"eval/{key}", mean_value, self.global_step)
+            eval_summary = eval_logs.mean_log()
+            self._write_logs("eval", eval_summary)
 
             if self.checkpoint_interval is not None and epoch % self.checkpoint_interval == 0:
                 self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -176,17 +196,16 @@ class RLAlgorithm(nn.Module, ABC):
                 lr_scheduler.step()
 
 
-        if hasattr(self, "run"):
-            self.run.finish()
-
-        self.writer.close()
-
         if running_experiment:
+            self.writer.close()
+
+            if hasattr(self, "run"):
+                self.run.finish()
+
             save_dir = get_root_path() / "saved_models" / self.experiment_name
             save_dir.mkdir(parents=True, exist_ok=True)
 
             save_dict = self.save()
-
             for net_name, state_dict in save_dict.items():
                 torch.save(state_dict, save_dir / f"{net_name}.pth")
 
@@ -219,7 +238,7 @@ class RLAlgorithm(nn.Module, ABC):
         done = False
         with torch.no_grad():
             while not done:
-                bids, action, entropy = env.strategy.get_bid_action(**obs)
+                bids = env.strategy.bidding(**obs)
 
                 obs, reward, done, info = env.step(bids)
 

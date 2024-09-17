@@ -31,10 +31,9 @@ model:
   strategy: "SimpleBiddingStrategy"
 
 train:
-  batch_size:
-    values: [32, 64, 128]
-  num_epochs: 1
-  steps_per_epoch: 100
+  batch_size: 128
+  num_epochs: 10
+  steps_per_epoch: 1000
   actor_optimizer: "AdamW"
   actor_optimizer_params:
     lr: 1e-4

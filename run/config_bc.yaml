@@ -1,0 +1,41 @@
+general:
+  project_path: /work/daniel.gratti/auto-bidding
+  project_name: bidding_train_env
+  experiment_name: bc
+  device: cuda
+  seed: 42
+
+data:
+  data_dir: data/traffic/rl_data/rl_data.parquet
+  buffer_size: 50000
+  val_periods: [25, 26, 27]
+
+environment:
+  environment: OfflineBiddingEnv
+  environment_params: {}
+
+model:
+  actor: DeterministicMLP
+  actor_params:
+    input_dim: 16
+    hidden_dims: [128]
+    output_dim: 1
+
+  budget: 750.0
+  category: 0
+  cpa: 8.0
+  strategy: SimpleBiddingStrategy
+
+train:
+  batch_size: 128
+  num_epochs: 10
+  steps_per_epoch: 1000
+  optimizer: Adam
+  optimizer_params:
+    lr: 0.001
+
+logging:
+  log_dir: logs/bc
+  checkpoint_interval: 1000
+  use_wandb: true
+  verbose: false

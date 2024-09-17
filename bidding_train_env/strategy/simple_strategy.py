@@ -2,7 +2,7 @@ from numpy.typing import NDArray
 
 import numpy as np
 
-from torch import Tensor
+from torch import Tensor, from_numpy
 
 from .base_bidding_strategy import BasePolicyStrategy
 from ..agents import Actor
@@ -12,6 +12,8 @@ class SimpleBiddingStrategy(BasePolicyStrategy):
     """
     Simple strategy using the state's statistics
     """
+    observation_shape = (16,)
+    action_shape = ()
 
     def __init__(
             self,
@@ -111,7 +113,7 @@ class SimpleBiddingStrategy(BasePolicyStrategy):
             historyImpressionResult: list[NDArray],
             historyLeastWinningCost: list[NDArray],
             action: Tensor
-        ) -> NDArray:
-        alpha = action.item()
+        ) -> Tensor:
+        alpha = action.view(())
 
-        return alpha * pValues
+        return alpha * from_numpy(pValues).to(self.device)

@@ -39,8 +39,6 @@ class DataParams:
 @dataclass
 class EnvironmentParams:
     environment: str                   = MISSING
-    observation_shape: tuple           = MISSING
-    action_shape: tuple                = MISSING
     environment_params: dict[str, Any] = field(default_factory=dict)
 
 
@@ -64,9 +62,8 @@ class TrainParams:
 @dataclass
 class LoggingParams:
     log_dir: str                       = 'logs/bc'
-    log_interval: Optional[int]        = None
     checkpoint_interval: Optional[int] = None
-    use_wandb: bool                    = False
+    use_wandb: bool                    = True
     verbose: bool                      = False
 
 @dataclass
@@ -112,12 +109,10 @@ default_config = {
     },
     "environment" : {
         "environment" : "OfflineBiddingEnv",
-        "observation_shape" : (16,),
-        "action_shape" : (),
     },
     "model" : {
         "strategy" : "SimpleBiddingStrategy",
-        "actor" : "ContinuousDeterminisitcMLP",
+        "actor" : "DeterministicMLP",
         "actor_params" : {
             "input_dim"  : 16,
             "hidden_dims": [128],
@@ -125,18 +120,18 @@ default_config = {
         },
     },
     "train" : {
-        "batch_size" : 100,
-        "num_epochs": 10_000,
-        "steps_per_epoch" : 100,
+        "batch_size" : 128,
+        "num_epochs": 10,
+        "steps_per_epoch" : 1000,
         "optimizer" : "Adam",
         "optimizer_params" : {
-            "lr"          : 1e-4,
+            "lr"          : 1e-3,
         },
     },
     "logging" : {
         "log_dir"            : "logs/bc",
         "checkpoint_interval": 1000,
-        "use_wandb"          : True,
+        "use_wandb"          : False,
     }
 }
 
@@ -208,38 +203,28 @@ if __name__ == '__main__':
 
 
     data_dir = Path(params.general.project_path) / params.data.data_dir
-    data = pd.read_parquet(data_dir).drop(params.data.val_periods, level="deliveryPeriodIndex")
+    data     = pd.read_parquet(data_dir).drop(params.data.val_periods, level="deliveryPeriodIndex")
 
-    replay_buffer = ReplayBuffer(
-        capacity          = params.data.buffer_size,
-        observation_shape = params.environment.observation_shape,
-        action_shape      = params.environment.action_shape,
-        device            = params.general.device
+    replay_buffer = ReplayBuffer.from_data(
+        data   = data,
+        reward = 'continuous',
+        device = params.general.device,
     )
-
-    replay_buffer.push(
-        torch.tensor(data['state'].to_numpy(), dtype=torch.float32),
-        torch.tensor(data['action'].to_numpy(), dtype=torch.float32),
-        torch.tensor(data['reward', 'continuous'].to_numpy(), dtype=torch.float32),
-        torch.tensor(data['next_state'].to_numpy(), dtype=torch.float32),
-        torch.tensor(data['done'].to_numpy(), dtype=torch.bool)
-    )
-
 
     behavior_cloning.begin_experiment(
-        project_name = params.general.project_name,
-        experiment_name = params.general.experiment_name,
-        log_dir = params.logging.log_dir,
+        project_name        = params.general.project_name,
+        experiment_name     = params.general.experiment_name,
+        log_dir             = params.logging.log_dir,
         checkpoint_interval = params.logging.checkpoint_interval,
-        use_wandb = params.logging.use_wandb,
-        config = config_to_dict(params)
+        use_wandb           = params.logging.use_wandb,
+        config              = config_to_dict(params)
     )
 
     behavior_cloning.learn(
-        num_epochs = params.train.num_epochs,
+        num_epochs      = params.train.num_epochs,
         steps_per_epoch = params.train.steps_per_epoch,
-        replay_buffer = replay_buffer,
-        batch_size = params.train.batch_size,
-        eval_env = env,
-        val_periods = params.data.val_periods
+        replay_buffer   = replay_buffer,
+        batch_size      = params.train.batch_size,
+        env             = env,
+        val_periods     = params.data.val_periods
     )

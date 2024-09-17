@@ -238,19 +238,19 @@ if __name__ == '__main__':
     )
 
     dt.begin_experiment(
-        project_name = params.general.project_name,
-        experiment_name = params.general.experiment_name,
-        log_dir = params.logging.log_dir,
+        project_name        = params.general.project_name,
+        experiment_name     = params.general.experiment_name,
+        log_dir             = params.logging.log_dir,
         checkpoint_interval = params.logging.checkpoint_interval,
-        use_wandb = params.logging.use_wandb,
-        config = config_to_dict(params)
+        use_wandb           = params.logging.use_wandb,
+        config              = config_to_dict(params)
     )
 
     dt.learn(
-        num_epochs=params.train.num_epochs,
-        steps_per_epoch=params.train.steps_per_epoch,
-        replay_buffer=replay_buffer,
-        batch_size=params.train.batch_size,
-        eval_env=env,
-        val_periods=params.data.val_periods,
+        num_epochs      = params.train.num_epochs,
+        steps_per_epoch = params.train.steps_per_epoch,
+        replay_buffer   = replay_buffer,
+        batch_size      = params.train.batch_size,
+        env             = env,
+        val_periods     = params.data.val_periods,
     )

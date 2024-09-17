@@ -1,4 +1,4 @@
 from .base import Actor as Actor
 
-from .mlp import ContinuousDeterminisitcMLP, NormalStochasticMLP
+from .mlp import DeterministicMLP, NormalStochasticMLP
 from .transformer import Transformer

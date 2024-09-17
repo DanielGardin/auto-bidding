@@ -1,0 +1,66 @@
+general:
+  project_path: /work/daniel.gratti/auto-bidding
+  project_name: bidding_train_env
+  experiment_name: iql
+  device: cuda
+  seed: 42
+
+data:
+  data_dir: data/traffic/rl_data/rl_data.parquet
+  buffer_size: 50000
+  val_periods: [25, 26, 27]
+
+environment:
+  environment: OfflineBiddingEnv
+  environment_params: {}
+
+model:
+  actor: NormalStochasticMLP
+  actor_params:
+    activation: relu
+    input_dim: 16
+    hidden_dims: [256, 256]
+    output_dim: 1
+
+  budget: 750.0
+  category: 0
+  cpa: 8.0
+  critic: QEmbedMLP
+  critic_params:
+    action_shape: []
+    activation: relu
+    embedding_dim: 64
+    hidden_dims: [256, 256]
+    observation_shape: [16]
+  
+  num_critics: 2
+  strategy: SimpleBiddingStrategy
+  value: MLP
+  value_params:
+    activation: relu
+    hidden_dims: [256, 256]
+    input_dim: 16
+
+train:
+  actor_optimizer: Adam
+  actor_optimizer_params:
+    lr: 0.001
+  batch_size: 128
+  critic_optimizer: Adam
+  critic_optimizer_params:
+    lr: 0.001
+  expectile: 0.7
+  gamma: 0.99
+  num_epochs: 10
+  steps_per_epoch: 1000
+  tau: 0.005
+  temperature: 3.0
+  value_optimizer: Adam
+  value_optimizer_params:
+    lr: 0.001
+
+logging:
+  log_dir: logs/iql
+  checkpoint_interval: 1000
+  use_wandb: true
+  verbose: false
