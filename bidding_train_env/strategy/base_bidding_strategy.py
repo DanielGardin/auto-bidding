@@ -1,7 +1,7 @@
 from numpy.typing import NDArray
 
 from abc import ABC, abstractmethod
-from torch import Tensor
+from torch import Tensor, as_tensor
 import numpy as np
 
 from ..agents import Actor
@@ -15,7 +15,7 @@ class BaseBiddingStrategy:
             self,
             budget: float = 100.,
             name: str     = "BaseStrategy",
-            cpa: float    = 2,
+            cpa: float    = 2.,
             category: int = 1
         ):
         """
@@ -92,7 +92,7 @@ class BaseBiddingStrategy:
             historyLeastWinningCost: list[NDArray],
         ) -> tuple[NDArray, Tensor, Tensor]:
         # Default bidding strategy will be removed in the future in favor to abc
-        return self.cpa * pValues, Tensor(0.), Tensor(0.)
+        return self.cpa * pValues, as_tensor(0.), as_tensor(0.)
 
 
     def bidding(
