@@ -150,7 +150,7 @@ class RLAlgorithm(nn.Module, ABC):
         for epoch in range(1, num_epochs+1):
             self.train()
 
-            with tqdm.tqdm(total=steps_per_epoch, unit=" steps", ncols=100) as pbar:
+            with tqdm.tqdm(total=steps_per_epoch, unit=" steps", ncols=300) as pbar:
 
                 pbar.set_description(f"Epoch {epoch}/{num_epochs}")
 
