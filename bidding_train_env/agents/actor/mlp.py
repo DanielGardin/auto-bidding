@@ -108,7 +108,7 @@ class NormalStochasticMLP(MLP, Actor):
         else:
             sampled_action = action
 
-        log_prob = dist.log_prob(sampled_action)
+        log_prob = dist.log_prob(sampled_action).sum(dim=-1)    
         entropy  = dist.entropy()
 
         return sampled_action, log_prob, entropy
