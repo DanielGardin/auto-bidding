@@ -3,6 +3,7 @@ from torch import load
 
 from .base_bidding_strategy import BaseBiddingStrategy as BaseBiddingStrategy
 from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
+from .collect_strategy import CollectStrategy as CollectStrategy
 
 from ..utils import get_root_path, turn_off_grad
 from ..agents import actor
