@@ -16,8 +16,11 @@ experiment_name = "dt"
 
 config_path = get_root_path() / f'saved_models/{experiment_name}/config.yaml'
 strategy    = SimpleBiddingStrategy
+try:
+    config = OmegaConf.load(config_path)
 
-config = OmegaConf.load(config_path)
+except:
+    pass
 
 class PlayerBiddingStrategy(strategy):
     """
