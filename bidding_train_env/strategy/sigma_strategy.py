@@ -128,9 +128,9 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
             historyLeastWinningCost: list[NDArray],
             action: Tensor
         ) -> NDArray:
-        action = action.squeeze(-1).tolist()[0]
-        alpha, beta, theta = action[0], action[1], action[2]
-
+        alpha, beta, theta = action[:, 0], action[:, 1], action[:, 2]
+        pValues = Tensor(pValues).to(action.device)
+        pValueSigmas = Tensor(pValueSigmas).to(action.device)
         return alpha * pValues + beta * pValueSigmas + theta
     
     def bid_to_action(
