@@ -11,8 +11,8 @@ class BaseBiddingStrategy:
     """
     Base bidding strategy interface defining methods to be implemented.
     """
-    observation_shape: Optional[Sequence[int]] = None
-    action_shape: Optional[Sequence[int]]      = None
+    observation_shape: Optional[Sequence[int | None]] = None
+    action_shape: Optional[Sequence[int | None]]      = None
 
 
     def __init__(

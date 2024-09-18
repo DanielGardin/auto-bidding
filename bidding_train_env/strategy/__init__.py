@@ -1,7 +1,7 @@
 from omegaconf import OmegaConf
 from torch import load
 
-from .base_bidding_strategy import BaseBiddingStrategy as BaseBiddingStrategy
+from .base_bidding_strategy import BaseBiddingStrategy, BasePolicyStrategy
 from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
 from .collect_strategy import CollectStrategy as CollectStrategy
 
