@@ -3,6 +3,7 @@ from numpy.typing import NDArray
 import numpy as np
 
 from torch import Tensor
+from sklearn.linear_model import LinearRegression
 
 from .base_bidding_strategy import BasePolicyStrategy
 from ..agents import Actor
@@ -131,3 +132,23 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
         alpha, beta, theta = action[0], action[1], action[2]
 
         return alpha * pValues + beta * pValueSigmas + theta
+    
+    def bid_to_action(
+        self,
+        bids                   : NDArray,
+        timeStepIndex          : int,
+        pValues                : NDArray,
+        pValueSigmas           : NDArray,
+        historyPValueInfo      : list[NDArray],
+        historyBid             : list[NDArray],
+        historyAuctionResult   : list[NDArray],
+        historyImpressionResult: list[NDArray],
+        historyLeastWinningCost: list[NDArray],
+    ) -> NDArray:
+        # Linear regression model
+        X = np.stack([pValues, pValueSigmas]).T
+        y = bids
+        reg = LinearRegression().fit(X, y)
+        alpha, beta = reg.coef_
+        theta = reg.intercept_
+        return np.array([alpha, beta, theta])

@@ -2,19 +2,17 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from sklearn.linear_model import LinearRegression
-
 from .base_bidding_strategy import BaseBiddingStrategy
 
 
 class CollectStrategy(BaseBiddingStrategy):
     """
-    A strategy utilized to.
+    A strategy utilized to collect new state/action representations. It's only purpose is to wrap the methods from the original strategy and has a method to updated advertiser info.
     """
 
     def __init__(
         self,
-        base_strategy : BaseBiddingStrategy,
+        base_strategy: BaseBiddingStrategy,
         budget: float = 100.0,
         name: str = "CollectStrategy",
         cpa: float = 2,
@@ -40,52 +38,11 @@ class CollectStrategy(BaseBiddingStrategy):
         ]
         self.remaining_budget = self.budget
 
-    def bid_to_action(
-        self,
-        bids: NDArray,
-        timeStepIndex: int,
-        pValues: NDArray,
-        pValueSigmas: NDArray,
-        historyPValueInfo: list[NDArray],
-        historyBid: list[NDArray],
-        historyAuctionResult: list[NDArray],
-        historyImpressionResult: list[NDArray],
-        historyLeastWinningCost: list[NDArray],
-    ) -> NDArray:
-
-        #alpha = bids.sum() / pValues.sum()
-        #return np.array([alpha])
-
-        # Linear regression model
-        X = np.stack([pValues, pValueSigmas]).T
-        y = bids
-        reg = LinearRegression().fit(X, y)
-        alpha, beta = reg.coef_
-        theta = reg.intercept_
-        return np.array([alpha, beta, theta])
-
-    def get_reward(
-        self,
-        timeStepIndex: int,
-        pValues: NDArray,
-        pValueSigmas: NDArray,
-        historyPValueInfo: list[NDArray],
-        historyBid: list[NDArray],
-        historyAuctionResult: list[NDArray],
-        historyImpressionResult: list[NDArray],
-        historyLeastWinningCost: list[NDArray],
-    ) -> float:
-        """Update if design a different reward"""
-        return super().get_reward(
-            timeStepIndex,
-            pValues,
-            pValueSigmas,
-            historyPValueInfo,
-            historyBid,
-            historyAuctionResult,
-            historyImpressionResult,
-            historyLeastWinningCost,
-        )
+    def bid_to_action(self, bids, **kwargs) -> NDArray:
+        return self.base_strategy.bid_to_action(bids, **kwargs)
+    
+    def get_reward(self, **kwargs) -> float:
+        return self.base_strategy.get_reward(**kwargs)
 
     def preprocess(self, **kwargs) -> NDArray:
         return self.base_strategy.preprocess(**kwargs)
