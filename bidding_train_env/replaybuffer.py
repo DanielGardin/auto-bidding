@@ -62,7 +62,9 @@ class ReplayBuffer(AbstractReplayBuffer):
             'reward'    : torch.empty((capacity,),                    dtype=torch.float32),
             'next_state': torch.empty((capacity, *observation_shape), dtype=torch.float32),
             'done'      : torch.empty((capacity,),                    dtype=torch.bool   ),
-        }, batch_size=(capacity,), device=device)
+        }, batch_size=(capacity,))
+
+        self.buffer.to(device)
 
         self.state_normalization = {
             'mean': torch.zeros((*observation_shape,), dtype=torch.float32, device=device),
