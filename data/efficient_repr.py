@@ -130,7 +130,7 @@ def add_period_index(df: pd.DataFrame, period_number: int) -> pd.DataFrame:
 if __name__ == '__main__':
     data_path = get_root_path() / 'data/traffic'
 
-    save_dir = data_path / 'efficient_repr'
+    save_dir = data_path / 'new_efficient_repr'
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # Sorting by version, so period-5.csv < period.12.csv
@@ -150,13 +150,13 @@ if __name__ == '__main__':
 
         log.info(f"Processing dataframes")
 
-        # # Get the first advertiser data. Assumes that the advertises are the same in all periods.
-        # if period_number == 7:
-        #     advertiser_data = process_advertiser_data(df)
-        #     advertiser_data.to_csv(save_dir / 'advertiser_data.csv')
+        # Get the first advertiser data. Assumes that the advertises are the same in all periods.
+        if period_number == 7:
+            advertiser_data = process_advertiser_data(df)
+            advertiser_data.to_csv(save_dir / 'advertiser_data.csv')
 
-        # bidding_data    = process_bidding_data(df)
-        # bidding_data.to_parquet(save_dir / f'bidding-period-{period_number}.parquet')
+        bidding_data    = process_bidding_data(df)
+        bidding_data.to_parquet(save_dir / f'bidding-period-{period_number}.parquet')
 
         impression_data = process_impression_data(df)
         impression_data = add_period_index(impression_data, period_number)
