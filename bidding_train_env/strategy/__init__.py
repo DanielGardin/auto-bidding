@@ -1,47 +1,54 @@
-from typing import Optional, Protocol
+from omegaconf import OmegaConf
+from torch import load
 
-from pathlib import Path
-from functools import partial
+from .base_bidding_strategy import BaseBiddingStrategy, BasePolicyStrategy
+from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
+from .sigma_strategy import SigmaBiddingStrategy as SigmaBiddingStrategy
+from .collect_strategy import CollectStrategy as CollectStrategy
 
-from .base_bidding_strategy import BaseBiddingStrategy
-from .player_bidding_strategy import PlayerBiddingStrategy
-from .onlinelp_bidding_strategy import OnlineLpBiddingStrategy
-from .simple_strategy import SimpleBiddingStrategy
+from ..utils import get_root_path, turn_off_grad
+from ..agents import actor
 
-class BiddingAgentConstructor(Protocol):
-    def __call__(
+# Moved from `import_utils.py` due to circular import
+def get_actor(actor_name: str, **kwargs) -> actor.Actor:
+    return getattr(actor, actor_name)(**kwargs)
+
+
+experiment_name = "dt"
+
+config_path = get_root_path() / f'saved_models/{experiment_name}/config.yaml'
+strategy    = SimpleBiddingStrategy
+try:
+    config = OmegaConf.load(config_path)
+
+except:
+    pass
+
+class PlayerBiddingStrategy(strategy):
+    """
+    Simple Strategy example for bidding.
+    """
+    def __init__(
             self,
             budget: float = 100.,
-            name: str = "BaseStrategy",
-            cpa: float = 2.,
+            name: str     = "PlayerStrategy",
+            cpa: float    = 2,
             category: int = 1
-        ) -> BaseBiddingStrategy: ...
+        ):
+
+        agent = get_actor(config.model.actor, **config.model.actor_params)
+
+        model_path = get_root_path() / config.saved_models.actor
+
+        agent.load_state_dict(load(model_path))
+
+        turn_off_grad(agent)
 
 
-def get_strategy(
-        strategy_name: str,
-        model_path: Optional[Path] = None,
-        **strategy_kwargs
-    ) -> BiddingAgentConstructor:
-
-    for strategy_file in Path(__file__).parent.rglob("*strategy.py"):
-        module = __import__(f"bidding_train_env.strategy.{strategy_file.stem}", fromlist=[""])
-
-        if strategy_name in dir(module):
-            strategy_cls = getattr(module, strategy_name)
-            break
-    else:
-        raise ValueError(f"Strategy {strategy_name} not found.")
-
-
-    def strategy_constructor(
-            *strategy_args,
-            **strategy_kwargs
-        ) -> BaseBiddingStrategy:
-        try:
-            return strategy_cls(*strategy_args, model_path=model_path, **strategy_kwargs)
-        
-        except TypeError:
-            return strategy_cls(*strategy_args, **strategy_kwargs)
-        
-    return strategy_constructor
+        super().__init__(
+            agent,
+            budget,
+            name,
+            cpa,
+            category
+        )

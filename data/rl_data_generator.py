@@ -244,6 +244,8 @@ if __name__ == "__main__":
     data_path = get_root_path() / 'data/traffic/efficient_repr'
     save_path = get_root_path() / 'data/traffic/rl_data'
 
+    save_path.mkdir(parents=True, exist_ok=True)
+
     states, actions, rewards, next_states, dones = generate_rl_data(
         data_path,
         min_budget = 0.1

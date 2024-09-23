@@ -33,7 +33,7 @@ def download_data(period_name: str, target_dir: Path) -> None:
         return
 
 
-    url = f'https://alimama-bidding-competition.oss-cn-beijing.aliyuncs.com/share/autoBidding_general_track_data_period_{period_name}.zip'
+    url = f'https://alimama-bidding-competition.oss-cn-beijing.aliyuncs.com/share/final/autoBidding_general_track_final_data_period_{period_name}.zip'
 
     response = urlopen(url)
 

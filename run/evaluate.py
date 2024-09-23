@@ -4,10 +4,15 @@ from pathlib import Path
 from time import perf_counter
 
 import logging
-import numpy as np
 
-from bidding_train_env.envs import OfflineBiddingEnv
-from bidding_train_env.strategy import BaseBiddingStrategy, get_strategy
+from torch import load
+
+from bidding_train_env.import_utils import get_env, get_strategy, get_actor
+from bidding_train_env.utils import get_root_path, turn_off_grad, set_seed
+from bidding_train_env.envs import BiddingEnv
+from bidding_train_env.strategy import BaseBiddingStrategy
+
+from omegaconf import OmegaConf
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,35 +22,28 @@ logger = logging.getLogger(__name__)
 
 
 def evaluate_strategy_offline(
-        agent: BaseBiddingStrategy,
-        advertiser_number: int = 0,
-        period: int = 7,
-
+        env: BiddingEnv,
+        strategy: BaseBiddingStrategy,
+        period: int = 7
     ):
     """
     offline evaluation
     """
     start = perf_counter()
 
-    env = OfflineBiddingEnv(
-        0,
-        agent.category,
-        agent.budget,
-        agent.cpa,
-    )
-    
     logger.info(
-        f"Evaluating strategy {agent.name} for advertiser {advertiser_number} in period {period}."
+        f"Evaluating strategy {strategy} on environment {env}."
     )
 
     cumulative_reward = 0
     num_steps = 0
 
-    obs, info = env.reset(period)
+    env.set_period(period)
+    obs, info = env.reset()
 
     done = False
     while not done:
-        action = agent.bidding(**obs)
+        action = strategy.bidding(**obs)
         obs, reward, done, info = env.step(action)
 
         cumulative_reward += reward
@@ -64,7 +62,7 @@ def evaluate_strategy_offline(
 
     logger.info(f"Strategy evaluation completed within {num_steps} steps, in {time_str}.")
     logger.info(f"Total reward: {cumulative_reward}")
-    logger.info(f"Total cost: {agent.budget - env.remaining_budget}")
+    logger.info(f"Total cost: {strategy.budget - env.remaining_budget}")
     logger.info(f"Total conversions: {info['conversions']}")
     logger.info(f"Total wins: {info['wins']}")
     logger.info(f"CPA: {info['cpa']}")
@@ -76,24 +74,41 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "strategy",
+        "config",
         type=str,
-        help="Bidding strategy to evaluate."
-    )
-    parser.add_argument(
-        "--path",
-        '-p',
-        type=str,
-        default=None,
-        help="Path to the model to load."
+        help="Path to yaml config file.",
+        nargs="?",
     )
 
     args = parser.parse_args()
 
-    model_path = None
-    if args.path is not None:
-        model_path = Path(args.path)
+    config = OmegaConf.load(args.config)
 
-    agent = get_strategy(args.strategy, model_path)()
+    set_seed(config.general.seed)
 
-    evaluate_strategy_offline(agent)
+    actor = get_actor(config.model.actor, **config.model.actor_params)
+    actor = actor.to(config.general.device)
+
+    model_path = get_root_path() / config.saved_models.actor
+
+    state_dict = load(model_path, map_location=config.general.device)
+    actor.load_state_dict(state_dict)
+
+    turn_off_grad(actor)
+
+    strategy = get_strategy(
+        config.model.strategy,
+        actor,
+        config.model.budget,
+        config.model.cpa,
+        config.model.category
+    )
+
+    env = get_env(
+        config.environment.environment,
+        strategy,
+        period=7,
+        **config.environment.environment_params
+    )
+
+    evaluate_strategy_offline(env, strategy, period=7)

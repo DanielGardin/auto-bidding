@@ -4,3 +4,8 @@
 *.DS_Store
 *__pycache__*
 *.pyc
+*egg-info
+wandb/
+logs/
+checkpoints/
+saved_models/

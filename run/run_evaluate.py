@@ -1,6 +1,11 @@
-import numpy as np
+"""
+Evaluate a bidding agent
+"""
+
 import math
 import logging
+import numpy as np
+
 from bidding_train_env.strategy import PlayerBiddingStrategy
 from bidding_train_env.dataloader.test_dataloader import TestDataLoader
 from bidding_train_env.environment.offline_env import OfflineEnv
@@ -27,7 +32,7 @@ def run_test():
     offline evaluation
     """
 
-    data_loader = TestDataLoader(file_path='./data/traffic/period-7.csv')
+    data_loader = TestDataLoader(file_path='./data/traffic/period-11.csv')
     env = OfflineEnv()
     agent = PlayerBiddingStrategy()
     print(agent.name)
@@ -86,6 +91,7 @@ def run_test():
         temImpressionResult = np.array([(tick_conversion[i], tick_conversion[i]) for i in range(pValue.shape[0])])
         history["historyImpressionResult"].append(temImpressionResult)
         logger.info(f'Timestep Index: {timeStep_index + 1} End')
+
     all_reward = np.sum(rewards)
     all_cost = agent.budget - agent.remaining_budget
     cpa_real = all_cost / (all_reward + 1e-10)
