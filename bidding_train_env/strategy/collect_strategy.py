@@ -26,7 +26,7 @@ class CollectStrategy(BaseBiddingStrategy):
         self.category = category
         self.remaining_budget = budget
         self.advertiser_data = pd.read_csv(
-            "data/traffic/efficient_repr/advertiser_data.csv", index_col=0
+            "data/traffic/new_efficient_repr/advertiser_data.csv", index_col=0
         )
 
     def set_advertiser(self, advertiser: int):
