@@ -38,6 +38,8 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
         time_left = 1 - timeStepIndex / 48
 
         total_cost = sum(np.sum(array[1]) for array in historyBid)
+        total_conversions = sum(np.sum(array) for array in historyImpressionResult)
+        cpa_r = total_cost / total_conversions if total_conversions > 0 else 0.0
         remaining_budget = self.remaining_budget / (total_cost + self.remaining_budget)
 
         if timeStepIndex == 0:
@@ -89,6 +91,7 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
                 current_pValues_mean,
                 current_pValuesSigmas_mean,
                 self.cpa,
+                cpa_r,
                 self.budget,
             ]
             + [1 if self.category == i else 0 for i in range(6)]
@@ -146,8 +149,10 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
         historyLeastWinningCost: list[NDArray],
     ) -> NDArray:
         # Linear regression model
-        X = np.stack([pValues, pValueSigmas]).T
+        X = np.stack([pValues, pValueSigmas]).T        
         y = bids
+        if np.isnan(y).mean() > 0:
+            y = np.zeros_like(y)
         reg = LinearRegression().fit(X, y)
         alpha, beta = reg.coef_
         theta = reg.intercept_
