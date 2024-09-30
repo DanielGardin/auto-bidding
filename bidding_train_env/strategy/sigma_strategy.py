@@ -157,3 +157,52 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
         alpha, beta = reg.coef_
         theta = reg.intercept_
         return np.array([alpha, beta, theta])
+    
+    def get_reward(
+            self,
+            timeStepIndex          : int,
+            pValues                : NDArray,
+            pValueSigmas           : NDArray,
+            historyPValueInfo      : list[NDArray],
+            historyBid             : list[NDArray],
+            historyAuctionResult   : list[NDArray],
+            historyImpressionResult: list[NDArray],
+            historyLeastWinningCost: list[NDArray],
+    ) -> float:
+        
+        if len(historyImpressionResult) == 0:
+            return 0.
+
+        else:
+            return np.sum(historyAuctionResult[-1][:, 0] * historyPValueInfo[-1][:, 0])
+
+    def state_names(self):
+        return [
+            "time_left",
+            "remaining_budget",
+            "current_pValues_mean",
+            "current_pValuesSigmas_mean",
+            "cpa",
+            "cpa_r",
+            "budget",
+        ] + [f"category_{i}" for i in range(6)] + [
+            "historical_mean_bid",
+            "historical_mean_least_winning_cost",
+            "historical_mean_pValues",
+            "historical_conversion_mean",
+            "historical_xi_mean",
+            "last_three_bid_mean",
+            "last_three_LeastWinningCost_mean",
+            "last_three_pValues_mean",
+            "last_three_conversion_mean",
+            "last_three_xi_mean",
+            "current_pv_num",
+            "last_three_pv_num_total",
+            "historical_pv_num_total",
+        ]
+    
+    def action_names(self):
+        return ["alpha", "beta", "theta"]
+    
+    def reward_names(self):
+        return ["continuous"]
