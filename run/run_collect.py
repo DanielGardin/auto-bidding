@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def collect_rl_data(env: BiddingEnv, strategy: BaseBiddingStrategy, filename: str):
-    save_path = get_root_path() / "data/traffic/rl_data"
+    save_path = get_root_path() / "data/traffic/new_rl_data"
     index = []
     states = []
     actions = []
@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--strategy", type=str, default="SigmaBiddingStrategy")
-    parser.add_argument("--filename", type=str, default="test_rl_data.parquet")
+    parser.add_argument("--filename", type=str, default="updated_rl_data.parquet")
     args = parser.parse_args()
     strategy = CollectStrategy(
         base_strategy=get_strategy(
