@@ -32,14 +32,18 @@ def get_score_nips(reward: float, cpa: float, cpa_constraint: float, *, beta: fl
 
 class OfflineBiddingEnv(BiddingEnv):
     MIN_BUDGET = 0.1
-    DATA_PATH = get_root_path() / 'data/traffic/efficient_repr'
-
     def __init__(
             self,
             strategy: BaseBiddingStrategy,
-            period: int,
+            data : str = "new",
+            period: int = 7,
             advertiser_number: int = 0,
         ):
+        if data == "new":
+            self.DATA_PATH = get_root_path() / 'data/traffic/new_efficient_repr'
+        elif data == "old":
+            self.DATA_PATH = get_root_path() / 'data/traffic/efficient_repr'
+        
         self.impressions = pd.read_parquet(self.DATA_PATH / 'impression_data.parquet')
 
         self.advertiser_number = advertiser_number
