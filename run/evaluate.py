@@ -4,7 +4,8 @@ from pathlib import Path
 from time import perf_counter
 
 import logging
-
+import numpy as np
+import pandas as pd
 from torch import load
 
 from bidding_train_env.import_utils import get_env, get_strategy, get_actor
@@ -68,6 +69,14 @@ def evaluate_strategy_offline(
     logger.info(f"CPA: {info['cpa']}")
     logger.info(f"Score: {info['score']}")
 
+    return {
+        "cumulative_reward": cumulative_reward,
+        "cost" : strategy.budget - env.remaining_budget,
+        "conversions": info["conversions"],
+        "cpa" : info["cpa"],
+        "score": info["score"]
+    }
+
 
 if __name__ == "__main__":
     import argparse
@@ -78,6 +87,11 @@ if __name__ == "__main__":
         type=str,
         help="Path to yaml config file.",
         nargs="?",
+    )
+    parser.add_argument(
+        "--n_tests",
+        type=int,
+        default=1,
     )
 
     args = parser.parse_args()
@@ -96,19 +110,48 @@ if __name__ == "__main__":
 
     turn_off_grad(actor)
 
-    strategy = get_strategy(
-        config.model.strategy,
-        actor,
-        config.model.budget,
-        config.model.cpa,
-        config.model.category
-    )
 
-    env = get_env(
-        config.environment.environment,
-        strategy,
-        period=7,
-        **config.environment.environment_params
-    )
+    if args.n_tests == 1:
+        strategy = get_strategy(
+            config.model.strategy,
+            actor,
+            config.model.budget,
+            config.model.cpa,
+            config.model.category
+        )
+        
+        env = get_env(
+            config.environment.environment,
+            strategy,
+            period=7,
+            **config.environment.environment_params
+        )
 
-    evaluate_strategy_offline(env, strategy, period=7)
+        evaluate_strategy_offline(env, strategy, period=7)
+    else:
+        advertiser_data = pd.read_csv(get_root_path() / "data/traffic/efficient_repr/advertiser_data.csv")
+        budget = advertiser_data.sample(args.n_tests)["budget"].values
+        cpa = advertiser_data.sample(args.n_tests)["CPAConstraint"].values
+        category = advertiser_data.sample(args.n_tests)["advertiserCategoryIndex"].values
+        results = []
+        for i in range(args.n_tests):
+
+            strategy = get_strategy(
+                config.model.strategy,
+                actor,
+                budget[i],
+                cpa[i],
+                category[i]
+            )
+
+            period = np.random.choice([24, 25, 26])
+            env = get_env(
+                config.environment.environment,
+                strategy,
+                period=period,
+                **config.environment.environment_params
+            )
+            results.append(evaluate_strategy_offline(env, strategy, period=period))
+        results = pd.DataFrame(results)
+
+        print(results.mean())
