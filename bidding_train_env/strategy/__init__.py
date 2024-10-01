@@ -5,6 +5,7 @@ from .base_bidding_strategy import BaseBiddingStrategy, BasePolicyStrategy
 from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
 from .sigma_strategy import SigmaBiddingStrategy as SigmaBiddingStrategy
 from .collect_strategy import CollectStrategy as CollectStrategy
+from .alpha_strategy import AlphaBiddingStrategy as AlphaBiddingStrategy
 
 from ..utils import get_root_path, turn_off_grad
 from ..agents import actor
@@ -14,10 +15,10 @@ def get_actor(actor_name: str, **kwargs) -> actor.Actor:
     return getattr(actor, actor_name)(**kwargs)
 
 
-experiment_name = "dt"
+experiment_name = "iql_sigma_2024-09-30-03:32:14"
 
 config_path = get_root_path() / f'saved_models/{experiment_name}/config.yaml'
-strategy    = SimpleBiddingStrategy
+strategy    = SigmaBiddingStrategy
 try:
     config = OmegaConf.load(config_path)
 
@@ -39,8 +40,8 @@ class PlayerBiddingStrategy(strategy):
         agent = get_actor(config.model.actor, **config.model.actor_params)
 
         model_path = get_root_path() / config.saved_models.actor
-
-        agent.load_state_dict(load(model_path))
+        print(model_path)
+        agent.load_state_dict(load(model_path, map_location='cpu'))
 
         turn_off_grad(agent)
 
