@@ -74,13 +74,13 @@ class OfflineBiddingEnv(BiddingEnv):
 
 
     def get_obs(self):
-        if not self.is_terminal():
-            pValues       = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValue'].to_numpy()
-            pValuesSigmas = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValueSigma'].to_numpy()
+        #if not self.is_terminal():
+        pValues       = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValue'].to_numpy()
+        pValuesSigmas = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValueSigma'].to_numpy()
 
-        else:
-            pValues       = np.array([])
-            pValuesSigmas = np.array([])
+        #else:
+        #    pValues       = np.array([])
+        #    pValuesSigmas = np.array([])
 
         obs = {
             "timeStepIndex": self.current_timestep,
@@ -136,6 +136,11 @@ class OfflineBiddingEnv(BiddingEnv):
 
     def get_offline_bids(self):
         return self.period_data.loc[self.current_timestep][self.advertiser_number, 'bid'].to_numpy()
+    
+    
+    def get_competitors_bids(self):
+        cols = [(i, 'bid') for i in range(48) if i != self.advertiser_number]
+        return self.period_data.loc[self.current_timestep][cols].to_numpy()
 
 
     def step(self, bids: Optional[NDArray] = None):
@@ -152,7 +157,9 @@ class OfflineBiddingEnv(BiddingEnv):
         pValuesSigmas     = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValueSigma'].to_numpy()
         leastWinningCosts = self.impressions.loc[self.current_period, self.current_timestep][(3, 'cost')].to_numpy() # type: ignore
 
-        winning_bids, costs, conversions = self.simulate_ad_bidding(bids, pValues, pValuesSigmas, leastWinningCosts)
+        competitors_bids = self.get_competitors_bids()
+        winning_bids, costs, conversions = self.simulate_ad_bidding(bids, pValues, pValuesSigmas, competitors_bids)
+
 
         if costs.sum() > self.remaining_budget - self.MIN_BUDGET:
             bid_mask = self.resolve_overcosted_bids(bids, costs)
@@ -214,12 +221,19 @@ class OfflineBiddingEnv(BiddingEnv):
             bids: NDArray,
             pValues: NDArray,
             pValueSigmas: NDArray,
-            leastWinningCosts: NDArray,
+            competitors_bids: NDArray,
         ):
-        winning_bids = bids >= leastWinningCosts
+        # get which bids I won (in any position)
+        lose = bids[:, None] < competitors_bids
+        # I won if I lose at most 2 bids
+        winning_bids = np.sum(lose, axis=1) <= 2
 
-        costs = leastWinningCosts * winning_bids
+        # get the highest bid I won
+        win_cost = competitors_bids * (1 - lose)
+        
+        costs = np.max(win_cost, axis=1) * winning_bids
 
+        # suppose that all bids are exposed
         sim_pValues = np.random.normal(loc=pValues, scale=pValueSigmas) * winning_bids
         sim_pValues = np.clip(sim_pValues, 0, 1)
 

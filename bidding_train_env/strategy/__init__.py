@@ -4,7 +4,6 @@ from torch import load
 from .base_bidding_strategy import BaseBiddingStrategy, BasePolicyStrategy
 from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
 from .sigma_strategy import SigmaBiddingStrategy as SigmaBiddingStrategy
-from .collect_strategy import CollectStrategy as CollectStrategy
 from .alpha_strategy import AlphaBiddingStrategy as AlphaBiddingStrategy
 
 from ..utils import get_root_path, turn_off_grad
@@ -15,10 +14,10 @@ def get_actor(actor_name: str, **kwargs) -> actor.Actor:
     return getattr(actor, actor_name)(**kwargs)
 
 
-experiment_name = "iql_sigma_2024-09-30-03:32:14"
+experiment_name = "iql_alpha_2024-10-01-12:43:56"
 
 config_path = get_root_path() / f'saved_models/{experiment_name}/config.yaml'
-strategy    = SigmaBiddingStrategy
+strategy    = AlphaBiddingStrategy
 try:
     config = OmegaConf.load(config_path)
 
