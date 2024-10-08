@@ -2,6 +2,7 @@ from numpy.typing import NDArray
 
 import numpy as np
 
+import torch
 from torch import Tensor
 from sklearn.linear_model import LinearRegression
 
@@ -36,8 +37,7 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
             historyLeastWinningCost: list[NDArray],
         ) -> Tensor:
         time_left = 1 - timeStepIndex / 48
-
-        total_cost = sum(np.sum(array[1]) for array in historyBid)
+        total_cost = sum(np.sum(array[:, 2]) for array in historyAuctionResult)
         total_conversions = sum(np.sum(array) for array in historyImpressionResult)
         cpa_r = total_cost / total_conversions if total_conversions > 0 else 0.0
         remaining_budget = self.remaining_budget / (total_cost + self.remaining_budget)
@@ -110,7 +110,7 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
                 last_three_pv_num_total / (500_000 / 3),
                 historical_pv_num_total / 500_000,
             ]
-        ).unsqueeze(0)
+        ).unsqueeze(0).to(torch.float64)
 
 
     def get_action(self, obs):
@@ -131,9 +131,7 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
             historyLeastWinningCost: list[NDArray],
             action: Tensor
         ) -> NDArray:
-
-        print(action[0])
-        pValues = Tensor(pValues).to(action.device)
+        pValues = Tensor(pValues).to(torch.float64).to(action.device)
         return action[0] * pValues
     
     def bid_to_action(
@@ -148,10 +146,8 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
         historyImpressionResult: list[NDArray],
         historyLeastWinningCost: list[NDArray],
     ) -> NDArray:
-        # Linear regression model
-        X = np.stack([pValues, pValueSigmas]).T        
-        y = bids
-        alpha = bids.sum() / pValues.sum()
+        sum_p = pValues.sum()
+        alpha = 0 if sum_p == 0 else bids.sum() / sum_p
         return np.array([alpha])        
     
     def get_reward(
