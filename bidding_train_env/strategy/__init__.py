@@ -14,7 +14,17 @@ def get_actor(actor_name: str, **kwargs) -> actor.Actor:
     return getattr(actor, actor_name)(**kwargs)
 
 
-experiment_name = "iql_alpha_2024-10-01-12:43:56"
+experiment_name = "latest"
+if experiment_name == "latest": # little hack because I was forgetting to update the experiment name
+    import os
+    import pandas as pd
+    experiment_names = os.listdir(get_root_path() / 'saved_models')
+    dates = [name.split('_')[-1] for name in experiment_names]
+    dates = pd.to_datetime(dates)
+    experiment_name = experiment_names[dates.argmax()]
+
+    print(f"Latest experiment: {experiment_name}")
+
 
 config_path = get_root_path() / f'saved_models/{experiment_name}/config.yaml'
 strategy    = AlphaBiddingStrategy
@@ -39,7 +49,6 @@ class PlayerBiddingStrategy(strategy):
         agent = get_actor(config.model.actor, **config.model.actor_params)
 
         model_path = get_root_path() / config.saved_models.actor
-        print(model_path)
         agent.load_state_dict(load(model_path, map_location='cpu'))
 
         turn_off_grad(agent)

@@ -110,7 +110,7 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
                 last_three_pv_num_total / (500_000 / 3),
                 historical_pv_num_total / 500_000,
             ]
-        ).unsqueeze(0).to(torch.float64)
+        ).unsqueeze(0)# .to(torch.float64)
 
 
     def get_action(self, obs):
@@ -131,7 +131,7 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
             historyLeastWinningCost: list[NDArray],
             action: Tensor
         ) -> NDArray:
-        pValues = Tensor(pValues).to(torch.float64).to(action.device)
+        pValues = Tensor(pValues).to(action.device) #.to(torch.float64)
         return action[0] * pValues
     
     def bid_to_action(

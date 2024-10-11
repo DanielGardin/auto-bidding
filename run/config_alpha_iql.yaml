@@ -6,8 +6,8 @@ general:
   seed: 42
 
 data:
-  data_dir: data/traffic/new_rl_data/updated_rl_data.parquet
-  buffer_size: 100_000
+  data_dir: data/traffic/new_rl_data/updated_rl_data_new.parquet
+  buffer_size: 50_000
   val_periods: [25, 26, 27]
 
 environment:
@@ -22,6 +22,9 @@ model:
     hidden_dims: [256, 256]
     output_dim: 1
 
+  budget: 750.0
+  category: 0
+  cpa: 8.0
   critic: QEmbedMLP
   critic_params:
     action_shape: [1]
@@ -48,7 +51,7 @@ train:
     lr: 0.0001
   expectile: 0.7
   gamma: 0.99
-  num_epochs: 500
+  num_epochs: 1000
   steps_per_epoch: 1_000
   tau: 0.005
   temperature: 3.0
@@ -58,6 +61,6 @@ train:
 
 logging:
   log_dir: logs/iql
-  checkpoint_interval: 100
+  checkpoint_interval: 1000
   use_wandb: true
   verbose: false
