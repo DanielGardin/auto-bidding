@@ -135,12 +135,15 @@ class OfflineBiddingEnv(BiddingEnv):
 
 
     def get_offline_bids(self):
-        return self.period_data.loc[self.current_timestep][self.advertiser_number, 'bid'].to_numpy()
-    
+        bids = self.period_data.loc[self.current_timestep][self.advertiser_number, 'bid']
+        # replace NaN values with 0
+        return bids.fillna(0).to_numpy()    
     
     def get_competitors_bids(self):
         cols = [(i, 'bid') for i in range(48) if i != self.advertiser_number]
-        return self.period_data.loc[self.current_timestep][cols].to_numpy()
+        bids = self.period_data.loc[self.current_timestep][cols]
+        # replace NaN values with 0
+        return bids.fillna(0).to_numpy()
 
 
     def step(self, bids: Optional[NDArray] = None):
