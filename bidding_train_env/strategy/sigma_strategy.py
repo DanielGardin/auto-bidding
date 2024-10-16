@@ -36,9 +36,8 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
             historyLeastWinningCost: list[NDArray],
         ) -> Tensor:
         time_left = 1 - timeStepIndex / 48
-
-        total_cost = sum(np.sum(array[1]) for array in historyBid)
-        total_conversions = sum(np.sum(array) for array in historyImpressionResult)
+        total_cost = sum(np.sum(array[:, 2]) for array in historyAuctionResult)
+        total_conversions = sum(np.sum(array[:, 1]) for array in historyImpressionResult)
         cpa_r = total_cost / total_conversions if total_conversions > 0 else 0.0
         remaining_budget = self.remaining_budget / (total_cost + self.remaining_budget)
 
@@ -151,7 +150,7 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
         # Linear regression model
         X = np.stack([pValues, pValueSigmas]).T        
         y = bids
-        if np.isnan(y).mean() > 0:
+        if np.isnan(y).mean() > 0: # When the agent was not able to bid
             y = np.zeros_like(y)
         reg = LinearRegression().fit(X, y)
         alpha, beta = reg.coef_

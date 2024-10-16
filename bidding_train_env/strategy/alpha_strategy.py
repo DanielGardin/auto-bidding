@@ -38,7 +38,7 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
         ) -> Tensor:
         time_left = 1 - timeStepIndex / 48
         total_cost = sum(np.sum(array[:, 2]) for array in historyAuctionResult)
-        total_conversions = sum(np.sum(array) for array in historyImpressionResult)
+        total_conversions = sum(np.sum(array[:, 1]) for array in historyImpressionResult)
         cpa_r = total_cost / total_conversions if total_conversions > 0 else 0.0
         remaining_budget = self.remaining_budget / (total_cost + self.remaining_budget)
 
