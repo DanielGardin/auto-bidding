@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import pickle as pkl
 
 from bidding_train_env.import_utils import get_env, get_strategy, get_actor
 from bidding_train_env.utils import get_root_path
@@ -126,6 +127,15 @@ if __name__ == "__main__":
         collect_rl_data(args.strategy, filename, data)
         df.append(pd.read_parquet(get_root_path() / "data/traffic/new_rl_data" / filename))
 
-    df = pd.concat(df)
     filename = args.filename + ".parquet"
+
+    df = pd.concat(df)
+    state_norm = {}
+    state_norm["mean"] = df["state"].mean().values
+    state_norm["std"] = df["state"].std().values
+    filename_pkl = filename.replace(".parquet", "_norm.pkl")
+    with open(get_root_path() / "data/traffic/new_rl_data" / filename_pkl, "wb") as f:
+        pkl.dump(state_norm, f)
+
+
     df.to_parquet(get_root_path() / "data/traffic/new_rl_data" / filename)

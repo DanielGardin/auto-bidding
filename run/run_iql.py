@@ -3,7 +3,7 @@ from typing import Optional, Any, cast
 from pathlib import Path
 
 import pandas as pd
-
+import pickle as pkl
 import torch
 
 from dataclasses import dataclass, field
@@ -31,9 +31,10 @@ class GeneralParams:
 
 @dataclass
 class DataParams:
-    data_dir: str          = 'data/traffic/rl_data/rl_data.parquet'
-    buffer_size: int       = MISSING
-    val_periods: list[int] = field(default_factory=list)
+    data_dir: str                 = 'data/traffic/rl_data/rl_data.parquet'
+    state_norm_dir: Optional[str] = None
+    buffer_size: int              = MISSING
+    val_periods: list[int]        = field(default_factory=list)
 
 @dataclass
 class EnvironmentParams:
@@ -224,7 +225,7 @@ if __name__ == '__main__':
 
     advertiser_number = params.environment.environment_params.get('advertiser_number', 0)
     metadata: dict[str, int] = pd.read_csv(
-        get_root_path() / 'data/traffic/efficient_repr/advertiser_data.csv',
+        get_root_path() / 'data/traffic/new_efficient_repr/advertiser_data.csv',
         index_col='advertiserNumber'
     ).to_dict(orient='index')[advertiser_number]
 
@@ -255,11 +256,21 @@ if __name__ == '__main__':
 
     data_dir = Path(params.general.project_path) / params.data.data_dir
     data = pd.read_parquet(data_dir).drop(params.data.val_periods, level="deliveryPeriodIndex")
+    if params.data.state_norm_dir is not None:
+        state_norm_dir = Path(params.general.project_path) / params.data.state_norm_dir
+        with open(state_norm_dir, 'rb') as f:
+            state_norm = pkl.load(f)
+        for k, v in state_norm.items():
+            state_norm[k] = torch.tensor(v, device=params.general.device)
 
     replay_buffer = ReplayBuffer.from_data(
         data   = data,
         reward = 'continuous',
         device = params.general.device
+    )
+    replay_buffer.normalize(
+        state_mean = state_norm['mean'],
+        state_std  = state_norm['std']
     )
 
     iql.begin_experiment(
