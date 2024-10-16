@@ -24,6 +24,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def get_sampled_advertiser_info(n : int):
+    advertiser_data = pd.concat([
+        pd.read_csv(get_root_path() / f"data/traffic/{f}/advertiser_data.csv")
+        for f in ["efficient_repr", "new_efficient_repr"]
+    ])
+    budget   = advertiser_data.sample(n)["budget"].values
+    cpa      = advertiser_data.sample(n)["CPAConstraint"].values
+    category = advertiser_data.sample(n)["advertiserCategoryIndex"].values
+    period   = np.random.choice([24, 25, 26], n)
+    return budget, cpa, category, period
+
 
 def evaluate_strategy_offline(
         env      : BiddingEnv,
@@ -142,14 +153,7 @@ if __name__ == "__main__":
         evaluate_strategy_offline(env, strategy, period=7)
     else:
         torch.set_num_threads(1)
-        advertiser_data = pd.concat([
-            pd.read_csv(get_root_path() / f"data/traffic/{f}/advertiser_data.csv")
-            for f in ["efficient_repr", "new_efficient_repr"]
-        ])
-        budget = advertiser_data.sample(args.n_tests)["budget"].values
-        cpa = advertiser_data.sample(args.n_tests)["CPAConstraint"].values
-        category = advertiser_data.sample(args.n_tests)["advertiserCategoryIndex"].values
-        period = np.random.choice([24, 25, 26], args.n_tests)
+        budget, cpa, category, period = get_sampled_advertiser_info(args.n_tests)
         results = []
 
         aux = []
