@@ -24,6 +24,44 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
         ):
         super().__init__(actor, budget, name, cpa, category)
 
+
+    @property
+    def state_names(self):
+        return [
+            "time_left",
+            "remaining_budget",
+            "current_pValues_mean",
+            "current_pValuesSigmas_mean",
+            "cpa",
+            "cpa_r",
+            "budget",
+        ] + [f"category_{i}" for i in range(6)] + [
+            "historical_mean_bid",
+            "historical_mean_least_winning_cost",
+            "historical_mean_pValues",
+            "historical_conversion_mean",
+            "historical_xi_mean",
+            "last_three_bid_mean",
+            "last_three_LeastWinningCost_mean",
+            "last_three_pValues_mean",
+            "last_three_conversion_mean",
+            "last_three_xi_mean",
+            "current_pv_num",
+            "last_three_pv_num_total",
+            "historical_pv_num_total",
+        ]
+
+
+    @property
+    def action_names(self):
+        return ["alpha", "beta", "theta"]
+    
+
+    @property
+    def reward_names(self):
+        return ["continuous"]
+
+
     def preprocess(
             self,
             timeStepIndex          : int,
@@ -174,34 +212,3 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
 
         else:
             return np.sum(historyAuctionResult[-1][:, 0] * historyPValueInfo[-1][:, 0])
-
-    def state_names(self):
-        return [
-            "time_left",
-            "remaining_budget",
-            "current_pValues_mean",
-            "current_pValuesSigmas_mean",
-            "cpa",
-            "cpa_r",
-            "budget",
-        ] + [f"category_{i}" for i in range(6)] + [
-            "historical_mean_bid",
-            "historical_mean_least_winning_cost",
-            "historical_mean_pValues",
-            "historical_conversion_mean",
-            "historical_xi_mean",
-            "last_three_bid_mean",
-            "last_three_LeastWinningCost_mean",
-            "last_three_pValues_mean",
-            "last_three_conversion_mean",
-            "last_three_xi_mean",
-            "current_pv_num",
-            "last_three_pv_num_total",
-            "historical_pv_num_total",
-        ]
-    
-    def action_names(self):
-        return ["alpha", "beta", "theta"]
-    
-    def reward_names(self):
-        return ["continuous"]
