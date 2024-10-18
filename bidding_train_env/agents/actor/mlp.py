@@ -37,8 +37,8 @@ class DeterministicMLP(MLP, Actor):
         ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
         if action is None:
-            sampled_action = self(obs)
-            action = torch.clamp(sampled_action * self.action_scale, *self.action_interval)
+            action = self(obs)
+            #action = torch.clamp(sampled_action * self.action_scale, *self.action_interval)
 
         return action, torch.tensor(0.), torch.tensor(0.)
 

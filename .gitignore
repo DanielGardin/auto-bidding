@@ -9,3 +9,4 @@ wandb/
 logs/
 checkpoints/
 saved_models/
+build/

@@ -2,6 +2,7 @@ from numpy.typing import NDArray
 
 import numpy as np
 
+import torch
 from torch import Tensor
 from sklearn.linear_model import LinearRegression
 
@@ -9,22 +10,22 @@ from .base_bidding_strategy import BasePolicyStrategy
 from ..agents import Actor
 
 
-class SigmaBiddingStrategy(BasePolicyStrategy):
+class AlphaBiddingStrategy(BasePolicyStrategy):
     """
-    Strategy with action that is bid = alpha * pValue + beta * sigma + theta
+    Strategy with action that is bid = alpha * pValue 
     """
 
     def __init__(
             self,
             actor: Actor,
             budget: float = 100.,
-            name: str     = "SigmaStrategy",
+            name: str     = "AlphaStrategy",
             cpa: float    = 2.,
             category:int  = 1,
         ):
         super().__init__(actor, budget, name, cpa, category)
 
-
+    
     @property
     def state_names(self):
         return [
@@ -54,7 +55,7 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
 
     @property
     def action_names(self):
-        return ["alpha", "beta", "theta"]
+        return ["alpha"]
     
 
     @property
@@ -147,7 +148,7 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
                 last_three_pv_num_total / (500_000 / 3),
                 historical_pv_num_total / 500_000,
             ]
-        ).unsqueeze(0)
+        ).unsqueeze(0)# .to(torch.float64)
 
 
     def get_action(self, obs):
@@ -168,10 +169,8 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
             historyLeastWinningCost: list[NDArray],
             action: Tensor
         ) -> NDArray:
-        alpha, beta, theta = action[:, 0], action[:, 1], action[:, 2]
-        pValues = Tensor(pValues).to(action.device)
-        pValueSigmas = Tensor(pValueSigmas).to(action.device)
-        return alpha * pValues + beta * pValueSigmas + theta
+        pValues = Tensor(pValues).to(action.device) #.to(torch.float64)
+        return action[0] * pValues
     
     def bid_to_action(
         self,
@@ -185,15 +184,9 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
         historyImpressionResult: list[NDArray],
         historyLeastWinningCost: list[NDArray],
     ) -> NDArray:
-        # Linear regression model
-        X = np.stack([pValues, pValueSigmas]).T        
-        y = bids
-        if np.isnan(y).mean() > 0: # When the agent was not able to bid
-            y = np.zeros_like(y)
-        reg = LinearRegression().fit(X, y)
-        alpha, beta = reg.coef_
-        theta = reg.intercept_
-        return np.array([alpha, beta, theta])
+        sum_p = pValues.sum()
+        alpha = 0 if sum_p == 0 else bids.sum() / sum_p
+        return np.array([alpha])        
     
     def get_reward(
             self,
@@ -211,4 +204,4 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
             return 0.
 
         else:
-            return np.sum(historyAuctionResult[-1][:, 0] * historyPValueInfo[-1][:, 0])
+            return np.sum(historyImpressionResult[-1][:, 0])

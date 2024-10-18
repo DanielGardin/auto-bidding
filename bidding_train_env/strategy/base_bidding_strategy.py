@@ -156,7 +156,7 @@ class BaseBiddingStrategy:
             return 0.
 
         else:
-            return np.sum(historyImpressionResult[-1]).astype(float)
+            return np.sum(historyImpressionResult[-1][:, 0]).astype(float)
 
 
 class BasePolicyStrategy(BaseBiddingStrategy, ABC):
@@ -188,6 +188,44 @@ class BasePolicyStrategy(BaseBiddingStrategy, ABC):
     @property
     def device(self):
         return next(self.agent.parameters()).device
+
+
+    @property
+    def state_names(self):
+        obs = self.preprocess(
+            0,
+            np.zeros(1),
+            np.zeros(1),
+            [],
+            [],
+            [],
+            [],
+            [],
+        ).to(self.device)
+
+        return [f"state_{i}" for i in range(obs.shape[-1])]
+
+
+    @property
+    def action_names(self):
+        obs = self.preprocess(
+            0,
+            np.zeros(1),
+            np.zeros(1),
+            [],
+            [],
+            [],
+            [],
+            [],
+        ).to(self.device)
+
+        action, _, _ = self.get_action(obs)
+        return [f"action_{i}" for i in range(action.shape[-1])]
+    
+
+    @property
+    def reward_names(self):
+        return ["continuous"]
 
 
     def reset(self):
@@ -238,6 +276,25 @@ class BasePolicyStrategy(BaseBiddingStrategy, ABC):
         Given the observation and an action sampled from the agent, convert the action to bids.
         """
 
+        pass
+
+
+    @abstractmethod
+    def bid_to_action(
+        self,
+        bids                   : NDArray,
+        timeStepIndex          : int,
+        pValues                : NDArray,
+        pValueSigmas           : NDArray,
+        historyPValueInfo      : list[NDArray],
+        historyBid             : list[NDArray],
+        historyAuctionResult   : list[NDArray],
+        historyImpressionResult: list[NDArray],
+        historyLeastWinningCost: list[NDArray],
+    ) -> NDArray:
+        """
+        Given the bids, extract the action used by the agent.
+        """
         pass
 
 

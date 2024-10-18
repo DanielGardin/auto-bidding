@@ -1,0 +1,43 @@
+general:
+  project_path: /work/giovani.valdrighi/auto-bidding
+  project_name: bidding_train_env
+  experiment_name: bc_sigma
+  device: cuda
+  seed: 42
+
+data:
+  data_dir: data/traffic/new_rl_data/sigma.parquet
+  buffer_size: 100_000
+  val_periods: [25, 26, 27]
+
+environment:
+  environment: OfflineBiddingEnv
+  environment_params: {}
+
+model:
+  actor: DeterministicMLP
+  actor_params:
+    activation: relu
+    input_dim: 26
+    hidden_dims: [256, 256]
+    output_dim: 3
+  
+  strategy: SigmaBiddingStrategy
+  budget: 2900
+  category: 0
+  cpa: 100
+
+
+train:
+  batch_size: 128
+  num_epochs : 100
+  steps_per_epoch: 10_000
+  optimizer: Adam
+  optimizer_params:
+    lr: 0.0001
+
+logging:
+  log_dir: logs/bc
+  checkpoint_interval: 1000
+  use_wandb: true
+  verbose: false

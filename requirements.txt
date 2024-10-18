@@ -10,6 +10,7 @@ scipy==1.14.1
 einops==0.8.0
 psutil
 func_timeout
+scikit-learn==1.5.2
 
 # Added packages
 setuptools==72.1.0
@@ -18,3 +19,4 @@ tqdm==4.66.5
 omegaconf==2.3.0
 wandb==0.17.9
 tensorboard==2.17.1
+pathos==0.3.3
