@@ -101,13 +101,13 @@ def collect_rl_data(
 
     index = pd.MultiIndex.from_frame(pd.DataFrame(index))
     states = pd.DataFrame(states, index=index)
-    states.columns = strategy.state_names()
+    states.columns = strategy.state_names
     actions = pd.DataFrame(actions, index=index)
-    actions.columns = strategy.action_names()
+    actions.columns = strategy.action_names
     rewards = pd.DataFrame(rewards, index=index)
-    rewards.columns = strategy.reward_names()
+    rewards.columns = strategy.reward_names
     next_states = pd.DataFrame(next_states, index=index)
-    next_states.columns = strategy.state_names()
+    next_states.columns = strategy.state_names
     dones = pd.Series(dones, index=index)
     rl_data = generate_rl_df(states, actions, rewards, next_states, dones)
     rl_data.to_parquet(save_path / filename)
