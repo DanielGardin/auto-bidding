@@ -213,6 +213,7 @@ if __name__ == '__main__':
     data_dir = Path(params.general.project_path) / params.data.data_dir
     data = pd.read_parquet(data_dir).drop(params.data.val_periods, level="deliveryPeriodIndex")
     data = data.loc[params.data.train_periods]
+    data = data.fillna(0)
 
     replay_buffer = EpisodeReplayBuffer(
         capacity          = params.data.buffer_size,
@@ -235,6 +236,10 @@ if __name__ == '__main__':
         torch.tensor(data['reward', 'continuous'].to_numpy(), dtype=torch.float32),
         torch.tensor(data['done'].to_numpy(), dtype=torch.bool),
         trajectory_idxs
+    )
+    replay_buffer.normalize(
+        state_mean=torch.as_tensor(data['state'].mean(), dtype=torch.float32),
+        state_std=torch.as_tensor(data['state'].std(), dtype=torch.float32)
     )
 
     dt.begin_experiment(
