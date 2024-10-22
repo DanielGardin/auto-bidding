@@ -71,16 +71,19 @@ class OfflineBiddingEnv(BiddingEnv):
         super().set_period(period)
 
         self.period_data = pd.read_parquet(self.DATA_PATH / f'bidding-period-{period}.parquet')
+        self.period_data = self.period_data.fillna(0)
+        cols = [(i, "bid") for i in range(48)]
+        self.all_bids = [self.period_data.loc[i, cols].values for i in range(48)] # small optimization
 
 
     def get_obs(self):
-        #if not self.is_terminal():
-        pValues       = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValue'].to_numpy()
-        pValuesSigmas = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValueSigma'].to_numpy()
+        if not self.is_terminal():
+            pValues       = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValue'].to_numpy()
+            pValuesSigmas = self.period_data.loc[self.current_timestep][self.advertiser_number, 'pValueSigma'].to_numpy()
 
-        #else:
-        #    pValues       = np.array([])
-        #    pValuesSigmas = np.array([])
+        else:
+            pValues       = np.array([])
+            pValuesSigmas = np.array([])
 
         obs = {
             "timeStepIndex": self.current_timestep,
@@ -135,20 +138,16 @@ class OfflineBiddingEnv(BiddingEnv):
 
 
     def get_offline_bids(self):
-        bids = self.period_data.loc[self.current_timestep][self.advertiser_number, 'bid']
-        # replace NaN values with 0
-        return bids.fillna(0).to_numpy()    
-    
+        bids = self.all_bids[self.current_timestep][:, self.advertiser_number]
+        return bids
+        
     def get_competitors_bids(self):
-        cols = [(i, 'bid') for i in range(48) if i != self.advertiser_number]
-        bids = self.period_data.loc[self.current_timestep][cols]
-        # replace NaN values with 0
-        return bids.fillna(0).to_numpy()
-
+        bids = self.all_bids[self.current_timestep][:, np.arange(48) != self.advertiser_number]
+        return bids
 
     def step(self, bids: Optional[NDArray] = None):
-        if self.is_terminal():
-            return self.get_obs(), 0, self.is_terminal(), self.get_info()
+        #if self.is_terminal():
+        #    return self.get_obs(), 0, self.is_terminal(), self.get_info()
 
         if bids is None:
             bids = self.get_offline_bids()
