@@ -32,7 +32,7 @@ def get_sampled_advertiser_info(n : int):
     budget   = advertiser_data.sample(n)["budget"].values
     cpa      = advertiser_data.sample(n)["CPAConstraint"].values
     category = advertiser_data.sample(n)["advertiserCategoryIndex"].values
-    period   = np.random.choice([24, 25, 26], n)
+    period   = np.random.choice([13], n)
     return budget, cpa, category, period
 
 
