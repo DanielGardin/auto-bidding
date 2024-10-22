@@ -170,7 +170,7 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
             action: Tensor
         ) -> NDArray:
         pValues = Tensor(pValues).to(action.device) #.to(torch.float64)
-        return action[0] * pValues
+        return action * pValues
     
     def bid_to_action(
         self,
