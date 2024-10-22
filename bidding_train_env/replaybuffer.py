@@ -370,12 +370,12 @@ class EpisodeReplayBuffer(AbstractReplayBuffer):
             reward_scale : Optional[torch.Tensor] = None,
         ):
         self.state_normalization['mean'] = \
-            self['states'].mean(dim=0) if state_mean is None else state_mean
+            self['states'].mean(dim=0) if state_mean is None else state_mean.to(self.device)
 
         self.state_normalization['std'] = \
-            self['states'].std(dim=0) if state_std is None else state_std
+            self['states'].std(dim=0) if state_std is None else state_std.to(self.device)
 
         max_return = (self.returns * self.sizes).max()
 
         self.reward_scale = \
-            max_return if reward_scale is None else reward_scale
+            max_return if reward_scale is None else reward_scale.to(self.device)
