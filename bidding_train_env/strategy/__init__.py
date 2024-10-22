@@ -14,7 +14,7 @@ def get_actor(actor_name: str, **kwargs) -> actor.Actor:
     return getattr(actor, actor_name)(**kwargs)
 
 
-experiment_name = "latest"
+experiment_name = "dt"
 if experiment_name == "latest": # little hack because I was forgetting to update the experiment name
     import os
     import pandas as pd
