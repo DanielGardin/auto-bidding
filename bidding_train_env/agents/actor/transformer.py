@@ -17,7 +17,6 @@ class Transformer(Actor):
             max_ep_len            : int,
             K                     : Optional[int],
             hidden_size           : int,
-            d_model               : int,
             transformer_num_layers: int,
             nhead                 : int,
             target_return         : float = 1.,
@@ -47,7 +46,7 @@ class Transformer(Actor):
         ## NNs
         self.transformer = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(
-                d_model         = d_model,
+                d_model         = hidden_size,
                 nhead           = nhead,
                 dim_feedforward = dim_feedforward,
                 dropout         = dropout,

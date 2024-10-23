@@ -1,0 +1,69 @@
+program: run_sweeps.py
+name: sweep_example
+method: bayes
+metric:
+  goal: maximize
+  name: eval/score
+
+parameters:
+  general:
+    seed: 42
+    device: "cuda:2"
+    project_name: "bidding_train_env"
+    experiment_name: "punisher-dt-2"
+    algorithm: "dt"
+
+  data:
+    data_dir: "data/traffic/new_gen_data/punished_reward_rl_data_new.parquet"
+    buffer_size: 50000
+    train_periods: [7, 8, 9, 10, 11]
+    val_periods: [12]
+
+  environment:
+    environment: "OfflineBiddingEnv"
+    observation_shape: [26]
+    action_shape: []
+
+  model:
+    actor: "Transformer"
+    actor_params:
+      state_dim: 26
+      act_dim: 1
+      K: 25
+      max_ep_len: 48
+      hidden_size:
+        values: [32, 64, 128]
+
+      transformer_num_layers:
+        values: [2, 3, 4, 5]
+
+      nhead:
+        values: [1, 2, 4]
+
+      dim_feedforward: 256
+      activation: "relu"
+      dropout:
+        values: [0.1, 0.2, 0.3, 0.4, 0.5]
+        
+    strategy: "AlphaPunisherStrategy"
+
+  train:
+    batch_size:
+      values: [32, 64, 128, 256, 512]
+    num_epochs: 50
+    steps_per_epoch: 100
+    actor_optimizer:
+      values: ["Adam", "AdamW"]
+
+    actor_optimizer_params:
+      lr:
+        distribution: "log_uniform_values"
+        min: 1.0e-5
+        max: 1.0e-2
+
+    trajectory_window: 25
+
+  logging:
+    log_dir: "logs/dt_sweeps"
+    checkpoint_interval: 1000
+    use_wandb: true
