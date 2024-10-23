@@ -28,7 +28,7 @@ if experiment_name == "latest": # little hack because I was forgetting to update
 
 
 config_path = get_root_path() / f'saved_models/{experiment_name}/config.yaml'
-strategy    = AlphaPunisherStrategy
+strategy    = AlphaBiddingStrategy
 try:
     config = OmegaConf.load(config_path)
 
