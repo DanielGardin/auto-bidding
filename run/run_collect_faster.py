@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import pickle as pkl
+import os
 
 from bidding_train_env.import_utils import get_env, get_strategy, get_actor
 from bidding_train_env.utils import get_root_path
@@ -50,7 +51,7 @@ def save_history(
         history = {}
         env = get_env(
             "OfflineBiddingEnv",
-            dummy_strategy,
+            dummy_strategy, # this also doesn't matter
             data = data,
             period = period,
             advertiser_number = 0,
@@ -59,7 +60,7 @@ def save_history(
         for advertiser in range(48):
             budget, cpa, category = get_advertiser_info(advertiser, data)
             strategy = get_strategy(
-                "AlphaBiddingStrategy",
+                "AlphaBiddingStrategy", # this doesn't matter
                 actor    = dummy_actor,
                 budget   = budget,
                 cpa      = cpa,
@@ -84,7 +85,7 @@ def collect_rl_data(
     filename      : str,
     data          : str,
 ):
-    save_path = get_root_path() / "data/traffic/new_rl_data"
+    save_path = get_root_path() / "data/traffic"
     index       = []
     states      = []
     actions     = []
@@ -92,7 +93,7 @@ def collect_rl_data(
     next_states = []
     dones       = []
 
-    for period in tqdm(range(7, 28)):
+    for period in tqdm(range(7, 8)):
         history = pkl.load(open(get_root_path() / f"data/traffic/history/{data}/period_{period}.pkl", "rb"))
 
         for advertiser in range(48):
@@ -173,28 +174,31 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--save_history", type=bool, default=False)
     parser.add_argument("--strategy", type=str, default="AlphaBiddingStrategy")
-    parser.add_argument("--filename", type=str, default="updated_rl_data")
+    parser.add_argument("--folder", type=str, default="updated_rl_data")
+    parser.add_argument("--filename", type=str, default="test")
     args = parser.parse_args()
 
     if args.save_history:
         for data in ["old", "new"]:
-            filename = "history_" + data + ".pkl"
             save_history(data)
 
+    if not os.path.exists(get_root_path() / "data/traffic" / args.folder):
+        os.mkdir(get_root_path() / "data/traffic" / args.folder)
+    
     df = []
     for data in ["old", "new"]:
-        filename = args.filename + "_" + data + ".parquet"
+        filename = f"{args.folder}/{args.filename}_{data}.parquet"
         collect_rl_data(args.strategy, filename, data)
-        df.append(pd.read_parquet(get_root_path() / "data/traffic/new_rl_data" / filename))
+        df.append(pd.read_parquet(get_root_path() / "data/traffic" / filename))
 
-    filename = args.filename + ".parquet"
+    filename = f"{args.folder}/{args.filename}.parquet"
 
     df = pd.concat(df)
     state_norm = {}
     state_norm["mean"] = df["state"].mean().values
     state_norm["std"] = df["state"].std().values
     filename_pkl = filename.replace(".parquet", "_norm.pkl")
-    with open(get_root_path() / "data/traffic/new_rl_data" / filename_pkl, "wb") as f:
+    with open(get_root_path() / "data/traffic" / filename_pkl, "wb") as f:
         pkl.dump(state_norm, f)
 
-    df.to_parquet(get_root_path() / "data/traffic/new_rl_data" / filename)
+    df.to_parquet(get_root_path() / "data/traffic" / filename)
