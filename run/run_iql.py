@@ -263,16 +263,19 @@ if __name__ == '__main__':
         strategy.state_norm = state_norm
         for k, v in state_norm.items():
             state_norm[k] = torch.tensor(v, device=params.general.device)
+    else:
+        state_norm = None
 
     replay_buffer = ReplayBuffer.from_data(
         data   = data,
         reward = 'continuous',
         device = params.general.device
     )
-    replay_buffer.normalize(
-        state_mean = state_norm['mean'],
-        state_std  = state_norm['std']
-    )
+    if state_norm:
+        replay_buffer.normalize(
+            state_mean = state_norm['mean'],
+            state_std  = state_norm['std']
+        )
 
     iql.begin_experiment(
         project_name        = params.general.project_name,
