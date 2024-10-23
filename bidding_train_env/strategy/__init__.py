@@ -21,7 +21,7 @@ if experiment_name == "latest": # little hack because I was forgetting to update
     import pandas as pd
     experiment_names = os.listdir(get_root_path() / 'saved_models')
     dates = [name.split('_')[-1] for name in experiment_names]
-    dates = pd.to_datetime(dates)
+    dates = pd.to_datetime(dates, errors = "coerce")
     experiment_name = experiment_names[dates.argmax()]
 
     print(f"Latest experiment: {experiment_name}")
