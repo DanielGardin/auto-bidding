@@ -153,8 +153,6 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
 
 
     def get_action(self, obs):
-        if self.state_norm is not None:
-            obs = (obs - self.state_norm["mean"]) / self.state_norm["std"]
         action, log_prob, entropy = super().get_action(obs)
 
         return action.squeeze(-1).clamp(0), log_prob, entropy
