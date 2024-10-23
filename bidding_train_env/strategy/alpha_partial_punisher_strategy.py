@@ -10,16 +10,16 @@ from .base_bidding_strategy import BasePolicyStrategy
 from ..agents import Actor
 
 
-class AlphaBiddingStrategy(BasePolicyStrategy):
+class AlphaPartialPunisherStrategy(BasePolicyStrategy):
     """
-    Strategy with action that is bid = alpha * pValue 
+    Strategy with action that is bid = alpha * pValue where the reward is 0 in case the CPA is transpassed
     """
 
     def __init__(
             self,
             actor: Actor,
             budget: float = 100.,
-            name: str     = "AlphaStrategy",
+            name: str     = "AlphaPartialPunisher",
             cpa: float    = 2.,
             category:int  = 1,
         ):
@@ -203,11 +203,15 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
             historyLeastWinningCost: list[NDArray],
     ) -> float:
         
-        self.estimate_impressions =  np.sum(historyImpressionResult[-1][:, 0])
-        self.estimate_costs = np.sum()
+        
         
         if len(historyImpressionResult) == 0:
             return 0.
 
         else:
+            self.estimate_impressions += np.sum(historyImpressionResult[-1][:, 0])
+            self.estimate_costs += (self.budget - self.remaining_budget)
+            self.estimate_cpa = self.estimate_costs / self.estimate_impressions
+            if self.estimate_cpa > self.cpa:
+                return 0
             return np.sum(historyImpressionResult[-1][:, 0])

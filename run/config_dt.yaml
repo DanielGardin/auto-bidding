@@ -2,10 +2,10 @@ general:
   seed: 42
   device: "cpu"
   project_name: "bidding_train_env"
-  experiment_name: "dt"
+  experiment_name: "punisher-dt-2"
 
 data:
-  data_dir: "data/traffic/new_rl_data/updated_rl_data_new.parquet"
+  data_dir: "data/traffic/new_gen_data/punished_reward_rl_data_new.parquet"
   buffer_size: 50000
   train_periods: [7, 8, 9, 10, 11]
   val_periods: [12]
@@ -29,7 +29,7 @@ model:
     dim_feedforward: 256
     activation: "relu"
     dropout: 0.1
-  strategy: "AlphaBiddingStrategy"
+  strategy: "AlphaPunisherStrategy"
 
 train:
   batch_size: 128
