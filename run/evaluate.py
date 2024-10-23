@@ -139,8 +139,8 @@ if __name__ == "__main__":
     state_dict = load(model_path, map_location=device)
     actor.load_state_dict(state_dict)
 
-    if config.data.state_norm_dir is not None:
-        state_norm = pkl.load(open(get_root_path() / config.data.state_norm_dir, 'rb'))
+    if hasattr(config.data, "state_norm") and config.data.state_norm:
+        state_norm = pkl.load(open(get_root_path() / config.saved_models.state_norm, 'rb'))
     else:
         state_norm = None
 
