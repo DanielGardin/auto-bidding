@@ -19,7 +19,8 @@ def get_strategy(
         actor: Optional[actor.Actor] = None,
         budget: float = 100.,
         cpa: float = 2.,
-        category: int = 0, 
+        category: int = 0,
+        state_norm = None
     ) -> strategy.BaseBiddingStrategy:
     strategy_cls = getattr(strategy, strategy_name)
 
@@ -34,7 +35,8 @@ def get_strategy(
         actor=actor,
         budget=budget,
         cpa=cpa,
-        category=category
+        category=category,
+        state_norm=state_norm
     )
 
 def get_env(

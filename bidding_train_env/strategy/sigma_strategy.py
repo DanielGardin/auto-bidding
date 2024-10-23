@@ -21,8 +21,9 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
             name: str     = "SigmaStrategy",
             cpa: float    = 2.,
             category:int  = 1,
+            state_norm    = None,
         ):
-        super().__init__(actor, budget, name, cpa, category)
+        super().__init__(actor, budget, name, cpa, category, state_norm)
 
 
     @property
@@ -152,7 +153,6 @@ class SigmaBiddingStrategy(BasePolicyStrategy):
 
     def get_action(self, obs):
         action, log_prob, entropy = super().get_action(obs)
-
         return action.squeeze(-1).clamp(0), log_prob, entropy
     
     

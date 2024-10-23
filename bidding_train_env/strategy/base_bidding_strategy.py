@@ -170,7 +170,8 @@ class BasePolicyStrategy(BaseBiddingStrategy, ABC):
             budget: float = 100.,
             name: str     = "BasePolicyStrategy",
             cpa: float    = 2.,
-            category: int = 1
+            category: int = 1,
+            state_norm    = None,
         ):
         """
         Initialize the policy strategy.
@@ -183,6 +184,7 @@ class BasePolicyStrategy(BaseBiddingStrategy, ABC):
         super().__init__(budget, name, cpa, category)
 
         self.agent = agent
+        self.state_norm = state_norm
 
 
     @property
@@ -256,6 +258,8 @@ class BasePolicyStrategy(BaseBiddingStrategy, ABC):
 
 
     def get_action(self, obs) -> tuple[Tensor, Tensor, Tensor]:
+        if self.state_norm is not None:
+            obs = (obs - self.state_norm["mean"]) / self.state_norm["std"]
         return self.agent.get_action(obs)
 
 

@@ -5,6 +5,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import numpy as np
+import pickle as pkl
 
 from tensordict import TensorDict
 from torch.optim.lr_scheduler import LRScheduler
@@ -92,10 +93,10 @@ class RLAlgorithm(nn.Module, ABC):
             config: Optional[dict] = None
         ):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-        if config["general"]["experiment_name"]:
-            self.experiment_name = config["general"]["experiment_name"]
+        if "_date" in experiment_name:
+            self.experiment_name = f"{experiment_name.replace('_date', '')}_{timestamp}"
         else:
-            self.experiment_name = f"{experiment_name}_{timestamp}"
+            self.experiment_name = experiment_name
 
         log_dir = Path(log_dir)
 
@@ -212,12 +213,18 @@ class RLAlgorithm(nn.Module, ABC):
             for net_name, state_dict in save_dict.items():
                 torch.save(state_dict, save_dir / f"{net_name}.pth")
 
+            state_norm = replay_buffer.state_normalization
+            for k, v in state_norm.items():
+                state_norm[k] = v.cpu().numpy()
+            pkl.dump(state_norm, open(save_dir / 'state_norm.pkl', 'wb'))
+
             if hasattr(self, "config") and self.config is not None:
                 import yaml
 
                 self.config["saved_models"] = {
                     net_name : str((save_dir / f"{net_name}.pth").relative_to(get_root_path())) for net_name in save_dict
                 }
+                self.config["saved_models"]["state_norm"] = str((save_dir / 'state_norm.pkl').relative_to(get_root_path()))
 
                 with open(save_dir / 'config.yaml', 'w') as f:
                     yaml.dump(self.config, f)

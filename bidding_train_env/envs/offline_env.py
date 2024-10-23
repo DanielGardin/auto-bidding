@@ -69,7 +69,8 @@ class OfflineBiddingEnv(BiddingEnv):
 
     def set_period(self, period: int):
         super().set_period(period)
-
+        if period == self.current_period and hasattr(self, 'period_data'):
+            return
         self.period_data = pd.read_parquet(self.DATA_PATH / f'bidding-period-{period}.parquet')
         self.period_data = self.period_data.fillna(0)
         cols = [(i, "bid") for i in range(48)]

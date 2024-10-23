@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from torch import load
 import torch
+import pickle as pkl
 
 from bidding_train_env.import_utils import get_env, get_strategy, get_actor
 from bidding_train_env.utils import get_root_path, turn_off_grad, set_seed
@@ -24,7 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def get_sampled_advertiser_info(n : int):
+def get_sampled_advertiser_info(n : int, val_periods : list[int] = [25, 26, 27]):
     advertiser_data = pd.concat([
         pd.read_csv(get_root_path() / f"data/traffic/{f}/advertiser_data.csv")
         for f in ["efficient_repr", "new_efficient_repr"]
@@ -32,7 +33,7 @@ def get_sampled_advertiser_info(n : int):
     budget   = advertiser_data.sample(n)["budget"].values
     cpa      = advertiser_data.sample(n)["CPAConstraint"].values
     category = advertiser_data.sample(n)["advertiserCategoryIndex"].values
-    period   = np.random.choice([25, 26, 27], n)
+    period   = np.random.choice(val_periods, n)
     return budget, cpa, category, period
 
 
@@ -107,6 +108,13 @@ if __name__ == "__main__":
         nargs="?",
     )
     parser.add_argument(
+        "--val_periods",
+        nargs="*",
+        type=int,
+        help="Periods to evaluate the strategy on.",
+        default=[25, 26, 27]
+    )
+    parser.add_argument(
         "--n_tests",
         type=int,
         default=1,
@@ -131,6 +139,11 @@ if __name__ == "__main__":
     state_dict = load(model_path, map_location=device)
     actor.load_state_dict(state_dict)
 
+    if hasattr(config.data, "state_norm") and config.data.state_norm:
+        state_norm = pkl.load(open(get_root_path() / config.saved_models.state_norm, 'rb'))
+    else:
+        state_norm = None
+
     turn_off_grad(actor)
 
 
@@ -140,7 +153,8 @@ if __name__ == "__main__":
             actor,
             config.model.budget,
             config.model.cpa,
-            config.model.category
+            config.model.category,
+            state_norm,
         )
         
         env = get_env(
@@ -150,10 +164,10 @@ if __name__ == "__main__":
             **config.environment.environment_params
         )
 
-        evaluate_strategy_offline(env, strategy, period=7)
+        evaluate_strategy_offline(env, strategy, True)
     else:
         torch.set_num_threads(1)
-        budget, cpa, category, period = get_sampled_advertiser_info(args.n_tests)
+        budget, cpa, category, period = get_sampled_advertiser_info(args.n_tests, args.val_periods)
         results = []
 
         aux = []
@@ -163,7 +177,8 @@ if __name__ == "__main__":
                 actor,
                 budget[i].item(),
                 cpa[i].item(),
-                category[i].item()
+                category[i].item(),
+                state_norm,
             )
             aux.append(strategy)
 

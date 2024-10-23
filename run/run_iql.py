@@ -3,8 +3,8 @@ from typing import Optional, Any, cast
 from pathlib import Path
 
 import pandas as pd
-import pickle as pkl
 import torch
+import copy
 
 from dataclasses import dataclass, field
 from omegaconf import OmegaConf, MISSING
@@ -32,7 +32,7 @@ class GeneralParams:
 @dataclass
 class DataParams:
     data_dir: str                 = 'data/traffic/rl_data/rl_data.parquet'
-    state_norm_dir: Optional[str] = None
+    state_norm: bool              = False
     buffer_size: int              = MISSING
     val_periods: list[int]        = field(default_factory=list)
 
@@ -238,12 +238,27 @@ if __name__ == '__main__':
     if params.model.category is None:
         params.model.category = metadata['advertiserCategoryIndex']
 
+    data_dir = Path(params.general.project_path) / params.data.data_dir
+    data = pd.read_parquet(data_dir).drop(params.data.val_periods, level="deliveryPeriodIndex")
+    replay_buffer = ReplayBuffer.from_data(
+        data   = data,
+        reward = 'continuous',
+        device = params.general.device
+    )
+    if params.data.state_norm:
+        replay_buffer.normalize()
+        state_norm = copy.deepcopy(replay_buffer.state_normalization)
+    else:
+        state_norm = None
+
+
     strategy = get_strategy(
         params.model.strategy,
         actor,
         params.model.budget,
         params.model.cpa,
-        params.model.category
+        params.model.category,
+        state_norm
     )
 
     env = get_env(
@@ -253,26 +268,7 @@ if __name__ == '__main__':
         **params.environment.environment_params
     )
 
-
-    data_dir = Path(params.general.project_path) / params.data.data_dir
-    data = pd.read_parquet(data_dir).drop(params.data.val_periods, level="deliveryPeriodIndex")
-    if params.data.state_norm_dir is not None:
-        state_norm_dir = Path(params.general.project_path) / params.data.state_norm_dir
-        with open(state_norm_dir, 'rb') as f:
-            state_norm = pkl.load(f)
-        for k, v in state_norm.items():
-            state_norm[k] = torch.tensor(v, device=params.general.device)
-
-    replay_buffer = ReplayBuffer.from_data(
-        data   = data,
-        reward = 'continuous',
-        device = params.general.device
-    )
-    replay_buffer.normalize(
-        state_mean = state_norm['mean'],
-        state_std  = state_norm['std']
-    )
-
+    
     iql.begin_experiment(
         project_name        = params.general.project_name,
         experiment_name     = params.general.experiment_name,
@@ -290,3 +286,8 @@ if __name__ == '__main__':
         env             = env,
         val_periods     = params.data.val_periods,
     )
+
+    # save_dir = get_root_path() / "saved_models" / iql.experiment_name
+    # for k, v in state_norm.items():
+    #     state_norm[k] = v.cpu().numpy()
+    # pkl.dump(state_norm, open(save_dir / "state_norm.pkl", "wb"))

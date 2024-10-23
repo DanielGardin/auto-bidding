@@ -1,5 +1,6 @@
 from omegaconf import OmegaConf
 from torch import load
+import pickle as pkl
 
 from .base_bidding_strategy import BaseBiddingStrategy, BasePolicyStrategy
 from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
@@ -21,19 +22,19 @@ if experiment_name == "latest": # little hack because I was forgetting to update
     import pandas as pd
     experiment_names = os.listdir(get_root_path() / 'saved_models')
     dates = [name.split('_')[-1] for name in experiment_names]
-    dates = pd.to_datetime(dates)
+    dates = pd.to_datetime(dates, errors = "coerce")
     experiment_name = experiment_names[dates.argmax()]
 
     print(f"Latest experiment: {experiment_name}")
 
 
 config_path = get_root_path() / f'saved_models/{experiment_name}/config.yaml'
-strategy    = AlphaBiddingStrategy
 try:
     config = OmegaConf.load(config_path)
-
 except:
     pass
+
+strategy = globals()[config.model.strategy]
 
 class PlayerBiddingStrategy(strategy):
     """
@@ -54,11 +55,15 @@ class PlayerBiddingStrategy(strategy):
 
         turn_off_grad(agent)
 
-
+        if hasattr(config.data, "state_norm") and config.data.state_norm:
+            state_norm = pkl.load(open(get_root_path() / config.saved_models.state_norm, 'rb'))
+        else:
+            state_norm = None
         super().__init__(
             agent,
             budget,
             name,
             cpa,
-            category
+            category,
+            state_norm
         )

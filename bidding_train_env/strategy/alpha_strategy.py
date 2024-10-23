@@ -22,8 +22,9 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
             name: str     = "AlphaStrategy",
             cpa: float    = 2.,
             category:int  = 1,
+            state_norm    = None,
         ):
-        super().__init__(actor, budget, name, cpa, category)
+        super().__init__(actor, budget, name, cpa, category, state_norm)
 
     
     @property

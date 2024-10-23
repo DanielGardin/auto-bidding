@@ -22,8 +22,9 @@ class AlphaPunisherStrategy(BasePolicyStrategy):
             name: str     = "AlphaPunisherStrategy",
             cpa: float    = 2.,
             category:int  = 1,
+            state_norm    = None,
         ):
-        super().__init__(actor, budget, name, cpa, category)
+        super().__init__(actor, budget, name, cpa, category, state_norm)
         self.estimate_cpa = 0
         self.estimate_impressions = 0
         self.estimate_costs = 0
