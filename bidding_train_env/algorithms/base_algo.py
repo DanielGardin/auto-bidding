@@ -92,10 +92,10 @@ class RLAlgorithm(nn.Module, ABC):
             config: Optional[dict] = None
         ):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-        if config["general"]["experiment_name"]:
-            self.experiment_name = config["general"]["experiment_name"]
+        if "_date" in experiment_name:
+            self.experiment_name = f"{experiment_name.replace('_date', '')}_{timestamp}"
         else:
-            self.experiment_name = f"{experiment_name}_{timestamp}"
+            self.experiment_name = experiment_name
 
         log_dir = Path(log_dir)
 
