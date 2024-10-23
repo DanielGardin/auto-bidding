@@ -22,8 +22,9 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
             name: str     = "AlphaStrategy",
             cpa: float    = 2.,
             category:int  = 1,
+            state_norm    = None,
         ):
-        super().__init__(actor, budget, name, cpa, category)
+        super().__init__(actor, budget, name, cpa, category, state_norm)
 
     
     @property
@@ -152,6 +153,8 @@ class AlphaBiddingStrategy(BasePolicyStrategy):
 
 
     def get_action(self, obs):
+        if self.state_norm is not None:
+            obs = (obs - self.state_norm["mean"]) / self.state_norm["std"]
         action, log_prob, entropy = super().get_action(obs)
 
         return action.squeeze(-1).clamp(0), log_prob, entropy

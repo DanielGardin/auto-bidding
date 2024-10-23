@@ -1,5 +1,6 @@
 from omegaconf import OmegaConf
 from torch import load
+import pickle as pkl
 
 from .base_bidding_strategy import BaseBiddingStrategy, BasePolicyStrategy
 from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
@@ -28,12 +29,12 @@ if experiment_name == "latest": # little hack because I was forgetting to update
 
 
 config_path = get_root_path() / f'saved_models/{experiment_name}/config.yaml'
-strategy    = AlphaBiddingStrategy
 try:
     config = OmegaConf.load(config_path)
-
 except:
     pass
+
+strategy = globals()[config.model.strategy]
 
 class PlayerBiddingStrategy(strategy):
     """
@@ -54,11 +55,16 @@ class PlayerBiddingStrategy(strategy):
 
         turn_off_grad(agent)
 
+        if config.data.state_norm_dir is not None:
+            state_norm = pkl.load(open(get_root_path() / config.data.state_norm_dir, 'rb'))
+        else:
+            state_norm = None
 
         super().__init__(
             agent,
             budget,
             name,
             cpa,
-            category
+            category,
+            state_norm
         )

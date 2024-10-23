@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from torch import load
 import torch
+import pickle as pkl
 
 from bidding_train_env.import_utils import get_env, get_strategy, get_actor
 from bidding_train_env.utils import get_root_path, turn_off_grad, set_seed
@@ -138,6 +139,11 @@ if __name__ == "__main__":
     state_dict = load(model_path, map_location=device)
     actor.load_state_dict(state_dict)
 
+    if config.data.state_norm_dir is not None:
+        state_norm = pkl.load(open(get_root_path() / config.data.state_norm_dir, 'rb'))
+    else:
+        state_norm = None
+
     turn_off_grad(actor)
 
 
@@ -147,7 +153,8 @@ if __name__ == "__main__":
             actor,
             config.model.budget,
             config.model.cpa,
-            config.model.category
+            config.model.category,
+            state_norm,
         )
         
         env = get_env(
@@ -157,7 +164,7 @@ if __name__ == "__main__":
             **config.environment.environment_params
         )
 
-        evaluate_strategy_offline(env, strategy, period=7)
+        evaluate_strategy_offline(env, strategy, True)
     else:
         torch.set_num_threads(1)
         budget, cpa, category, period = get_sampled_advertiser_info(args.n_tests, args.val_periods)
@@ -170,7 +177,8 @@ if __name__ == "__main__":
                 actor,
                 budget[i].item(),
                 cpa[i].item(),
-                category[i].item()
+                category[i].item(),
+                state_norm,
             )
             aux.append(strategy)
 
