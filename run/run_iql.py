@@ -260,6 +260,7 @@ if __name__ == '__main__':
         state_norm_dir = Path(params.general.project_path) / params.data.state_norm_dir
         with open(state_norm_dir, 'rb') as f:
             state_norm = pkl.load(f)
+        strategy.state_norm = state_norm
         for k, v in state_norm.items():
             state_norm[k] = torch.tensor(v, device=params.general.device)
 
