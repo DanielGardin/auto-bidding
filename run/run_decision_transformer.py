@@ -31,7 +31,7 @@ class GeneralParams:
 
 @dataclass
 class DataParams:
-    data_dir: str            = 'data/traffic/rl_data/rl_data.parquet'
+    data_dir: str            = 'data/traffic/new_gen_data/.parquet'
     buffer_size: int         = MISSING
     train_periods: list[int] = field(default_factory=list)
     val_periods: list[int]   = field(default_factory=list)
@@ -129,7 +129,7 @@ default_config = {
             "activation" : "relu",
             "dropout" : 0.1,
         },
-        "strategy" : "SimpleBiddingStrategy",
+        "strategy" : "AlphaPunisherStrategy",
     },
     "train" : {
         "batch_size" : 100,

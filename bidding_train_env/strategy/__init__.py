@@ -5,6 +5,7 @@ from .base_bidding_strategy import BaseBiddingStrategy, BasePolicyStrategy
 from .simple_strategy import SimpleBiddingStrategy as SimpleBiddingStrategy
 from .sigma_strategy import SigmaBiddingStrategy as SigmaBiddingStrategy
 from .alpha_strategy import AlphaBiddingStrategy as AlphaBiddingStrategy
+from .alpha_punisher_strategy import AlphaPunisherStrategy as AlphaPunisherStrategy
 
 from ..utils import get_root_path, turn_off_grad
 from ..agents import actor

@@ -2,13 +2,13 @@ general:
   seed: 42
   device: "cpu"
   project_name: "bidding_train_env"
-  experiment_name: "dt"
+  experiment_name: "punisher-dt-2"
 
 data:
-  data_dir: "data/traffic/new_rl_data/updated_rl_data_new.parquet"
+  data_dir: "data/traffic/new_gen_data/punished_reward_rl_data_new.parquet"
   buffer_size: 50000
-  train_periods: [7, 8, 9, 10]
-  val_periods: [11, 12, 13]
+  train_periods: [7, 8, 9, 10, 11]
+  val_periods: [12]
 
 environment:
   environment: "OfflineBiddingEnv"
@@ -20,7 +20,7 @@ model:
   actor_params:
     state_dim: 26
     act_dim: 1
-    K: 20
+    K: 25
     max_ep_len: 48
     hidden_size: 64
     d_model: 64
@@ -29,18 +29,18 @@ model:
     dim_feedforward: 256
     activation: "relu"
     dropout: 0.1
-  strategy: "AlphaBiddingStrategy"
+  strategy: "AlphaPunisherStrategy"
 
 train:
   batch_size: 128
-  num_epochs: 200
+  num_epochs: 250
   steps_per_epoch: 100
   actor_optimizer: "AdamW"
   actor_optimizer_params:
     lr: 1e-4
-  trajectory_window: 20
+  trajectory_window: 25
 
 logging:
   log_dir: "logs/dt"
   checkpoint_interval: 1000
-  use_wandb: false
+  use_wandb: true
