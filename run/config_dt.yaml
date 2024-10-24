@@ -1,8 +1,8 @@
 general:
   seed: 42
-  device: "cpu"
+  device: "cuda:0"
   project_name: "bidding_train_env"
-  experiment_name: "punisher-dt-2"
+  experiment_name: "punisher-dt-24-10"
 
 data:
   data_dir: "data/traffic/new_gen_data/punished_reward_rl_data_new.parquet"
@@ -23,7 +23,6 @@ model:
     K: 25
     max_ep_len: 48
     hidden_size: 64
-    d_model: 64
     transformer_num_layers: 3
     nhead: 1
     dim_feedforward: 256
@@ -38,7 +37,6 @@ train:
   actor_optimizer: "AdamW"
   actor_optimizer_params:
     lr: 1e-4
-  trajectory_window: 25
 
 logging:
   log_dir: "logs/dt"
