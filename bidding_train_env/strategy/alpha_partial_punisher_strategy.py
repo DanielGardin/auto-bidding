@@ -213,5 +213,5 @@ class AlphaPartialPunisherStrategy(BasePolicyStrategy):
             self.estimate_costs += (self.budget - self.remaining_budget)
             self.estimate_cpa = self.estimate_costs / self.estimate_impressions
             if self.estimate_cpa > self.cpa:
-                 return np.sum(historyImpressionResult[-1][:, 0]) * 0.5
-            return np.sum(historyImpressionResult[-1][:, 0])
+                 return np.sum(historyPValueInfo[-1][:, 0]) * 0.3
+            return np.sum(historyPValueInfo[-1][:, 0])
