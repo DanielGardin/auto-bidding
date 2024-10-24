@@ -25,7 +25,7 @@ if experiment_name == "latest": # little hack because I was forgetting to update
     dates = pd.to_datetime(dates, errors = "coerce")
     experiment_name = experiment_names[dates.argmax()]
 
-    print(f"Latest experiment: {experiment_name}")
+    # print(f"Latest experiment: {experiment_name}") ?
 
 
 config_path = get_root_path() / f'saved_models/{experiment_name}/config.yaml'

@@ -77,6 +77,46 @@ python run/run_{algorithm name}.py {path to config}.yaml
 ```
 
 ## Sweeping
-Wandb integration does not only allow easier experiment tracking, but hyperparameter tuning, by the name of *sweeps*.
+Wandb integration does not only allow easier experiment tracking, but hyperparameter tuning, by the name of *sweeps*. To run an experiment with sweeps create a config file with the structure expected for your algorithm. To turn it into a sweep file, follow the following template:
 
-Work in progress.
+Indent you parameters with a `parameters` key, the parameter values may change or be sampled from a distribution, but remain the structure unaltered.
+
+You can choose whether a parameter will be fixed or choosen from a list of possible values, or drawn from a specific distribution. If the value is constant, leave it as it is.
+
+If you want to a certain hyperparameter to be part of the search, indicate how they can change
+
+
+| desired behavior | parameter setting |
+| :--------------: | :---------------- |
+| list of possible parameters | <pre lang=yaml>optimizer:<br>  values: ["adam", "sgd", "rmsprop"]</pre>
+| categorical distribution | <pre lang=yaml>d_model:<br>  values: [64, 256, 1024]<br>  probabilities: [0.6, 0.3, 0.1]</pre>|
+| uniform distribution | <pre lang=yaml>num_layers:<br>  min: 1<br>  max: 4</pre> |
+| normal distribution | <pre lang=yaml>temperature:<br>  distribution: normal<br>  mu: 3.0<br>  sigma: 1.0</pre> |
+| log uniform distribution | <pre lang=yaml>lr:<br>  distribution: log_uniform<br>  min: -2<br>  sigma: 2</pre> |
+
+And many other distributions can be chosen: [See more](https://docs.wandb.ai/guides/sweeps/sweep-config-keys#parameters)
+
+Finally, add the following header, above the `parameters` field:
+
+```yaml
+program: run_sweeps.py
+
+name: <your sweep name>
+
+method: <sweep method | grid, random or bayes>
+
+metric:
+  goal: <maximize or minimize>
+  name: <name of the metric to be optimized>
+  target: <goal value | not required>
+
+run_cap: <maximum number of experiments | not required>
+```
+
+Sweeps also have support for [Early stopping](https://docs.wandb.ai/guides/sweeps/sweep-config-keys#early_terminate), if you like!
+
+After your sweep config is done, make sure you added the `algorithm` field in the `general` parameters, this will allow for the sweeps to run the algorithm properly. If everything is done, then run
+
+```bash
+python sweeps/run_sweeps.py {path to sweep config}.yaml
+```

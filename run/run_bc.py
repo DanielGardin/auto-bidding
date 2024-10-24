@@ -29,6 +29,7 @@ class GeneralParams:
     project_name: str    = "bidding_train_env"
     project_path: str    = str(get_root_path())
     experiment_name: str = "bc"
+    algorithm: str       = "bc"
 
 @dataclass
 class DataParams:
@@ -137,29 +138,12 @@ default_config = {
 
 
 
-if __name__ == '__main__':
-    import argparse
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('config_path', nargs='?',type=str, help='Path to the config file')
-    parser.add_argument('--sweeps', '-s', action='store_true', help='Run sweeps')
-    args = parser.parse_args()
-
-    if args.config_path is None:
-        logger.info("No config file provided, using default config")
-
-        config = default_config
-    
-    else:
-        config = args.config_path
-    
-    params = validate_config(config)
-
+def run(params: BCParams):
     if params.general.seed is not None: set_seed(params.general.seed)
 
     if params.general.device == 'auto':
         params.general.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
 
     # Setting up training configs
     actor = get_actor(params.model.actor, **params.model.actor_params)
@@ -228,3 +212,25 @@ if __name__ == '__main__':
         env             = env,
         val_periods     = params.data.val_periods
     )
+
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_path', nargs='?',type=str, help='Path to the config file')
+    parser.add_argument('--sweeps', '-s', action='store_true', help='Run sweeps')
+    args = parser.parse_args()
+
+    if args.config_path is None:
+        logger.info("No config file provided, using default config")
+
+        config = default_config
+    
+    else:
+        config = args.config_path
+    
+    params = validate_config(config)
+
+    run(params)

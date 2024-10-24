@@ -28,6 +28,7 @@ class GeneralParams:
     project_name: str    = "bidding_train_env"
     project_path: str    = str(get_root_path())
     experiment_name: str = "dt"
+    algorithm: str       = "dt"
 
 @dataclass
 class DataParams:
@@ -71,7 +72,7 @@ class LoggingParams:
     verbose: bool                      = False
 
 @dataclass
-class TD3BCParams:
+class DTParams:
     general: GeneralParams         = field(default_factory=GeneralParams)
     data: DataParams               = field(default_factory=DataParams)
     environment: EnvironmentParams = field(default_factory=EnvironmentParams)
@@ -79,9 +80,10 @@ class TD3BCParams:
     train: TrainParams             = field(default_factory=TrainParams)
     logging: LoggingParams         = field(default_factory=LoggingParams)
 
-template = TD3BCParams()
+template = DTParams()
 
-def validate_config(parameters):
+
+def validate_config(parameters) -> DTParams:
     if isinstance(parameters, dict):
         params = OmegaConf.create(parameters)
     
@@ -92,7 +94,7 @@ def validate_config(parameters):
         raise ValueError("Invalid parameters type")
 
     validated_config = OmegaConf.merge(template, params)
-    validated_config = cast(TD3BCParams, validated_config)
+    validated_config = cast(DTParams, validated_config)
 
     return validated_config
 
@@ -101,7 +103,7 @@ default_config = {
     "general" : {
         "seed"        : 42,
         "device"      : "cuda:2",
-        "project_name": "bidding_train_env",
+        "project_name": "sweeps",
     },
     "data" : {
         "data_dir"         : 'data/traffic/rl_data/rl_data.parquet',
@@ -148,24 +150,8 @@ default_config = {
     }
 }
 
-if __name__ == '__main__':
-    import argparse
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('config_path', nargs='?',type=str, help='Path to the config file')
-    parser.add_argument('--sweeps', '-s', action='store_true', help='Run sweeps')
-    args = parser.parse_args()
-
-    if args.config_path is None:
-        logger.info("No config file provided, using default config")
-
-        config = default_config
-    
-    else:
-        config = args.config_path
-    
-    params = validate_config(config)
-
+def run(params: DTParams):
 
     if params.general.seed is not None: set_seed(params.general.seed)
 
@@ -220,7 +206,7 @@ if __name__ == '__main__':
         max_ep_len        = 48,
         observation_shape = params.environment.observation_shape,
         action_shape      = params.environment.action_shape,
-        window_size       = params.train.trajectory_window,
+        window_size       = params.model.actor_params["K"],
         gamma             = 1.,
         device            = params.general.device,
         return_priority   = True
@@ -259,3 +245,26 @@ if __name__ == '__main__':
         env             = env,
         val_periods     = params.data.val_periods,
     )
+
+
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_path', nargs='?',type=str, help='Path to the config file')
+    parser.add_argument('--sweeps', '-s', action='store_true', help='Run sweeps')
+    args = parser.parse_args()
+
+    if args.config_path is None:
+        logger.info("No config file provided, using default config")
+
+        config = default_config
+    
+    else:
+        config = args.config_path
+    
+    params = validate_config(config)
+
+    run(params)
