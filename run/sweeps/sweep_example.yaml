@@ -9,7 +9,7 @@ parameters:
   general:
     seed: 42
     device: "cuda:2"
-    project_name: "bidding_train_env"
+    project_name: "testing_sweeps"
     experiment_name: "punisher-dt-2"
     algorithm: "dt"
 
@@ -50,8 +50,8 @@ parameters:
   train:
     batch_size:
       values: [32, 64, 128, 256, 512]
-    num_epochs: 50
-    steps_per_epoch: 100
+    num_epochs: 5
+    steps_per_epoch: 1
     actor_optimizer:
       values: ["Adam", "AdamW"]
 
