@@ -206,7 +206,7 @@ def run(params: DTParams):
         max_ep_len        = 48,
         observation_shape = params.environment.observation_shape,
         action_shape      = params.environment.action_shape,
-        window_size       = params.train.trajectory_window,
+        window_size       = params.model.actor_params["K"],
         gamma             = 1.,
         device            = params.general.device,
         return_priority   = True
