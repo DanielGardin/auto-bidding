@@ -93,7 +93,7 @@ def collect_rl_data(
     next_states = []
     dones       = []
 
-    for period in tqdm(range(7, 8)):
+    for period in tqdm(range(7, 28)):
         history = pkl.load(open(get_root_path() / f"data/traffic/history/{data}/period_{period}.pkl", "rb"))
 
         for advertiser in range(48):
@@ -137,7 +137,7 @@ def collect_rl_data(
                     "historyImpressionResult": h_ad["historyImpressionResult"][:timeStepIndex + 1],
                     "historyLeastWinningCost": h_ad["historyLeastWinningCost"][:timeStepIndex + 1],
                 }
-                reward = strategy.get_reward(**obs)
+                reward = strategy.get_reward(**next_obs)
                 done = False if timeStepIndex < 47 else True
                 actions.append(action)
                 rewards.append(reward)
