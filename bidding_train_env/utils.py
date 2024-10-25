@@ -113,6 +113,17 @@ def get_optimizer(
         return optimizer_cls(model.parameters(), **kwargs)
 
 
+def get_scheduler(
+        optimizer: optim.Optimizer,
+        scheduler_name: str,
+        **kwargs
+    ) -> optim.lr_scheduler._LRScheduler:
+
+    scheduler_cls = getattr(optim.lr_scheduler, scheduler_name)
+
+    return scheduler_cls(optimizer, **kwargs)
+
+
 def get_activation(activation: Callable[[torch.Tensor], torch.Tensor] | str | None) -> Callable[[torch.Tensor], torch.Tensor]:
     if activation is None:
         return lambda x: x

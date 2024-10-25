@@ -9,7 +9,7 @@ import torch
 from dataclasses import dataclass, field
 from omegaconf import OmegaConf, MISSING
 
-from bidding_train_env.utils import get_root_path, set_seed, get_optimizer, config_to_dict
+from bidding_train_env.utils import get_root_path, set_seed, get_optimizer, config_to_dict, get_scheduler
 from bidding_train_env.import_utils import get_actor, get_strategy, get_env
 from bidding_train_env.algorithms import DecisionTransformer
 from bidding_train_env.replaybuffer import EpisodeReplayBuffer
@@ -61,6 +61,8 @@ class TrainParams:
     steps_per_epoch: int                    = MISSING
     actor_optimizer: str                    = MISSING
     actor_optimizer_params: dict[str, Any]  = field(default_factory=lambda : dict(lr=MISSING))
+    scheduler: Optional[str]                = None
+    scheduler_params: dict[str, Any]        = field(default_factory=dict)
     trajectory_window: int                  = 20
 
 @dataclass
@@ -124,14 +126,13 @@ default_config = {
             "K" : 20,
             "max_ep_len" : 48,
             "hidden_size" : 64,
-            "d_model" : 64,
             "transformer_num_layers" : 3,
             "nhead" : 1,
             "dim_feedforward" : 256,
             "activation" : "relu",
             "dropout" : 0.1,
         },
-        "strategy" : "AlphaPunisherStrategy",
+        "strategy" : "AlphaBiddingStrategy",
     },
     "train" : {
         "batch_size" : 100,
@@ -140,6 +141,11 @@ default_config = {
         "actor_optimizer" : "AdamW",
         "actor_optimizer_params" : {
             "lr"          : 1e-4,
+        },
+        "scheduler" : "StepLR",
+        "scheduler_params" : {
+            "step_size" : 1000,
+            "gamma" : 0.5
         },
         "trajectory_window" : 20
     },
@@ -162,6 +168,11 @@ def run(params: DTParams):
     actor = actor.to(params.general.device)
 
     actor_optimizer  = get_optimizer(actor, params.train.actor_optimizer, **params.train.actor_optimizer_params)
+
+    scheduler = None
+    if params.train.scheduler is not None:
+        scheduler = get_scheduler(actor_optimizer, params.train.scheduler, **params.train.scheduler_params)
+
 
     dt = DecisionTransformer(actor, actor_optimizer)
 
@@ -243,6 +254,7 @@ def run(params: DTParams):
         replay_buffer   = replay_buffer,
         batch_size      = params.train.batch_size,
         env             = env,
+        lr_scheduler    = scheduler,
         val_periods     = params.data.val_periods,
     )
 

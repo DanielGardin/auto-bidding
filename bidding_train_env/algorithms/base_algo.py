@@ -199,6 +199,7 @@ class RLAlgorithm(nn.Module, ABC):
             if lr_scheduler is not None:
                 lr_scheduler.step()
 
+            # CAIO: early stopping
 
         if running_experiment:
             self.writer.close()

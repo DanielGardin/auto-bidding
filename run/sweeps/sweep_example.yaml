@@ -61,6 +61,11 @@ parameters:
         min: 1.0e-5
         max: 1.0e-2
 
+    scheduler: "StepLR"
+    scheduler_params:
+      step_size: 1
+      gamma: 0.99
+
     trajectory_window: 25
 
   logging:
