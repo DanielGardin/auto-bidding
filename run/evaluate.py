@@ -10,6 +10,7 @@ import pandas as pd
 from torch import load
 import torch
 import pickle as pkl
+import matplotlib.pyplot as plt
 
 from bidding_train_env.import_utils import get_env, get_strategy, get_actor
 from bidding_train_env.utils import get_root_path, turn_off_grad, set_seed
@@ -25,22 +26,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def get_sampled_advertiser_info(n : int, val_periods : list[int] = [25, 26, 27]):
+def get_sampled_advertiser_info(n : int, val_periods : list[int] = [25, 26, 27], seed : int = 42):
+    np.random.seed(seed)
     advertiser_data = pd.concat([
         pd.read_csv(get_root_path() / f"data/traffic/{f}/advertiser_data.csv")
         for f in ["efficient_repr", "new_efficient_repr"]
     ])
+    advertiser_number = advertiser_data.sample(n)[["advertiserNumber", "advertiserCategoryIndex"]].values
+    advertiser_number, category = advertiser_number[:, 0], advertiser_number[:, 1]
     budget   = advertiser_data.sample(n)["budget"].values
     cpa      = advertiser_data.sample(n)["CPAConstraint"].values
-    category = advertiser_data.sample(n)["advertiserCategoryIndex"].values
     period   = np.random.choice(val_periods, n)
-    return budget, cpa, category, period
+    return advertiser_number, budget, cpa, category, period
 
 
 def evaluate_strategy_offline(
-        env      : BiddingEnv,
-        strategy : BaseBiddingStrategy,
-        verbose  : bool = True
+        env               : BiddingEnv,
+        strategy          : BaseBiddingStrategy,
+        advertiser_number : int,
+        verbose           : bool = True
     ):
     """
     offline evaluation
@@ -57,6 +61,7 @@ def evaluate_strategy_offline(
     num_steps = 0
 
     env.strategy = strategy
+    env.advertiser_number = advertiser_number
     env.reset()
     obs, info = env.reset()
 
@@ -93,7 +98,10 @@ def evaluate_strategy_offline(
         "cost" : strategy.budget - env.remaining_budget,
         "conversions": info["conversions"],
         "cpa" : info["cpa"],
-        "score": info["score"]
+        "score": info["score"],
+        "cpa_r": strategy.cpa,
+        "budget": strategy.budget,
+        "category": strategy.category,
     }
 
 
@@ -112,7 +120,7 @@ if __name__ == "__main__":
         nargs="*",
         type=int,
         help="Periods to evaluate the strategy on.",
-        default=[25, 26, 27]
+        default=[27]
     )
     parser.add_argument(
         "--n_tests",
@@ -167,7 +175,7 @@ if __name__ == "__main__":
         evaluate_strategy_offline(env, strategy, True)
     else:
         torch.set_num_threads(1)
-        budget, cpa, category, period = get_sampled_advertiser_info(args.n_tests, args.val_periods)
+        advertiser_number, budget, cpa, category, period = get_sampled_advertiser_info(args.n_tests, args.val_periods)
         results = []
 
         aux = []
@@ -180,7 +188,11 @@ if __name__ == "__main__":
                 category[i].item(),
                 state_norm,
             )
-            aux.append(strategy)
+            aux.append({
+                "advertiser_number" : advertiser_number[i].item(), 
+                "strategy" : strategy,
+                "verbose" : False
+                })
 
         env = get_env(
             "OfflineBiddingEnv",
@@ -188,7 +200,7 @@ if __name__ == "__main__":
             period = period[0].item(),
         )
 
-        evaluate_strategy_offline_ = lambda strategy: evaluate_strategy_offline(env, strategy, False)
+        evaluate_strategy_offline_ = lambda kwargs: evaluate_strategy_offline(env, **kwargs)
         with Pool(args.n_jobs) as p:
             results = p.map(
                 evaluate_strategy_offline_,
@@ -200,3 +212,29 @@ if __name__ == "__main__":
         # replace cpa inf with 50000
         results["cpa"] = results["cpa"].replace(np.inf, 50000)
         print(results.describe())
+
+
+        
+        fig, axs = plt.subplots(1, 3, figsize=(9, 3))
+        axs[0].scatter(results["budget"], results["score"], alpha = 0.9)
+        axs[0].set_xlabel("budget")
+        axs[0].set_ylabel("score")
+        axs[0].set_xscale("log")
+
+        category_jitter = np.random.normal(0, 0.1, len(results)) + results["category"].values
+        axs[1].scatter(category_jitter, results["score"], alpha = 0.9)
+        axs[1].set_xlabel("category")
+        axs[1].set_ylabel("score")
+
+        axs[2].scatter(results["cpa_r"], results["score"], alpha = 0.9)
+        axs[2].set_xlabel("cpa")
+        axs[2].set_ylabel("score")
+        axs[2].set_xscale("log")
+
+        plt.suptitle(
+            f"{args.config.split('/')[-2]} \nscore: {results.score.mean():.2f} +- {results.score.std():.2f}"
+        )
+        plt.tight_layout()
+        
+        
+        plt.savefig(f"eval_{args.config.split('/')[-2]}.png")
